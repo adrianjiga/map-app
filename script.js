@@ -134,14 +134,12 @@ class App {
 
     e.preventDefault();
 
-    // get data from form
     const type = inputType.value;
     const distance = +inputDistance.value;
     const duration = +inputDuration.value;
     const { lat, lng } = this.#mapEvent.latlng;
     let workout;
 
-    // if workout is running, create running object
     if (type === "running") {
       const cadence = +inputCadence.value;
       if (
@@ -153,7 +151,6 @@ class App {
       workout = new Running([lat, lng], distance, duration, cadence);
     }
 
-    // if workout is cycling, create cycling object
     if (type === "cycling") {
       const elevation = +inputElevation.value;
       if (
@@ -165,19 +162,10 @@ class App {
       workout = new Cycling([lat, lng], distance, duration, elevation);
     }
 
-    // add new object workout array
     this.#workouts.push(workout);
-
-    // render workout on map as marker
     this._renderWorkoutMarker(workout);
-
-    // render workout on list
     this._renderWorkout(workout);
-
-    // hide form + clear list
     this._hideForm();
-
-    // set local storage to all workouts
     this._setLocalStorage();
   }
 
