@@ -120,7 +120,11 @@ describe('VALIDATORS registry', () => {
   });
 
   it('VALIDATORS.running delegates to validateRunning', () => {
-    const result = VALIDATORS.running({ distance: 5, duration: 30, cadence: 160 });
+    const result = VALIDATORS.running({
+      distance: 5,
+      duration: 30,
+      cadence: 160,
+    });
     expect(result.valid).toBe(true);
   });
 });

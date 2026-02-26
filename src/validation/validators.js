@@ -6,7 +6,10 @@ export const validateRunning = ({ distance, duration, cadence }) => {
     !isFiniteNumber(distance, duration, cadence) ||
     !isPositive(distance, duration, cadence)
   ) {
-    return { valid: false, message: 'Running inputs must be positive numbers!' };
+    return {
+      valid: false,
+      message: 'Running inputs must be positive numbers!',
+    };
   }
   return { valid: true };
 };
