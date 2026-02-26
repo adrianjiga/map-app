@@ -11,18 +11,23 @@ export class WorkoutRenderer {
   render(workout) {
     const html = `
       <li class="workout workout--${workout.type}" data-id="${workout.id}">
-        <h2 class="workout__title">${workout.description}</h2>
-        <div class="workout__details">
-          <span class="workout__icon">${workout.emoji}</span>
-          <span class="workout__value">${workout.distance}</span>
-          <span class="workout__unit">km</span>
+        <div class="workout__header">
+          <h2 class="workout__title">${workout.description}</h2>
+          <span class="workout__type-badge">${workout.emoji}</span>
         </div>
-        <div class="workout__details">
-          <span class="workout__icon">⏱</span>
-          <span class="workout__value">${workout.duration}</span>
-          <span class="workout__unit">min</span>
+        <div class="workout__metrics">
+          <div class="workout__details">
+            <span class="workout__icon">📍</span>
+            <span class="workout__value">${workout.distance}</span>
+            <span class="workout__unit">km</span>
+          </div>
+          <div class="workout__details">
+            <span class="workout__icon">⏱</span>
+            <span class="workout__value">${workout.duration}</span>
+            <span class="workout__unit">min</span>
+          </div>
+          ${this.#buildSpecificFieldsHTML(workout)}
         </div>
-        ${this.#buildSpecificFieldsHTML(workout)}
       </li>
     `;
 
