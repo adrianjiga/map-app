@@ -158,13 +158,27 @@ a:visited {
     box-shadow 0.2s ease;
 }
 
-.workout:nth-child(2) { animation-delay: 0ms; }
-.workout:nth-child(3) { animation-delay: 50ms; }
-.workout:nth-child(4) { animation-delay: 100ms; }
-.workout:nth-child(5) { animation-delay: 150ms; }
-.workout:nth-child(6) { animation-delay: 200ms; }
-.workout:nth-child(7) { animation-delay: 250ms; }
-.workout:nth-child(8) { animation-delay: 300ms; }
+.workout:nth-child(2) {
+  animation-delay: 0ms;
+}
+.workout:nth-child(3) {
+  animation-delay: 50ms;
+}
+.workout:nth-child(4) {
+  animation-delay: 100ms;
+}
+.workout:nth-child(5) {
+  animation-delay: 150ms;
+}
+.workout:nth-child(6) {
+  animation-delay: 200ms;
+}
+.workout:nth-child(7) {
+  animation-delay: 250ms;
+}
+.workout:nth-child(8) {
+  animation-delay: 300ms;
+}
 
 .workout:hover {
   transform: translateY(-2px);
@@ -176,7 +190,9 @@ a:visited {
 }
 
 .workout--running:hover {
-  box-shadow: var(--shadow-glow-running), 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    var(--shadow-glow-running),
+    0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .workout--cycling {
@@ -185,7 +201,9 @@ a:visited {
 }
 
 .workout--cycling:hover {
-  box-shadow: var(--shadow-glow-cycling), 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    var(--shadow-glow-cycling),
+    0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .workout__header {
