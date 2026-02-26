@@ -83,12 +83,21 @@ describe('MapService', () => {
     );
   });
 
-  it('init rejects when geolocation is denied', async () => {
+  it('init rejects when geolocation is denied and no cached coords', async () => {
+    localStorage.clear();
     navigator.geolocation.getCurrentPosition.mockImplementation((_, error) =>
       error(new Error('Denied'))
     );
     const failService = new MapService({ onMapClick: vi.fn() });
     await expect(failService.init()).rejects.toThrow();
+  });
+
+  it('init resolves immediately from cached coords on refresh', async () => {
+    localStorage.setItem('lastPosition', JSON.stringify([51.5, -0.09]));
+    navigator.geolocation.getCurrentPosition.mockImplementation(() => {});
+    const cachedService = new MapService({ onMapClick: vi.fn() });
+    await expect(cachedService.init()).resolves.toBeUndefined();
+    expect(L.map).toHaveBeenCalled();
   });
 
   it('renderStoredMarkers calls renderMarker for each workout', () => {
