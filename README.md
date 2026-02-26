@@ -1,21 +1,41 @@
+# Workout Map
 
-# Map App
+A workout tracker that logs running and cycling sessions on an interactive map. Click anywhere on the map to record a workout — it gets pinned with a marker and listed in the sidebar. Workouts persist across sessions via localStorage.
 
+**Live demo:** [adrianjiga.github.io/map-app](https://adrianjiga.github.io/map-app/)
 
-An application which pinpoints certain things on the map
+## Features
 
+- Log running and cycling workouts by clicking on the map
+- Markers and sidebar entries for each workout
+- Workouts persist across page reloads (localStorage)
+- Error banner for validation and geolocation failures (no browser alerts)
 
-## Authors
+## Tech Stack
 
-- [@adrianjiga](https://github.com/adrianjiga)
+- Vanilla JS (ES modules, OOP)
+- [Leaflet](https://leafletjs.com/) + OpenStreetMap
+- Vite, Vitest, ESLint, Prettier
 
-## 🛠 Skills
+## Getting Started
 
-Javascript, HTML, CSS
+```bash
+npm install
+npm run dev
+```
 
----
+Requires browser geolocation permission to initialize the map.
 
-## 🔗 Links
+## Scripts
 
-[![portfolio](https://img.shields.io/badge/my_portfolio-000?style=for-the-badge&logo=ko-fi&logoColor=white)](https://github.com/adrianjiga?tab=repositories)
-[![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/adrianjiga/)
+| Script | Description |
+|---|---|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm test` | Run test suite |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
+
+## Author
+
+[@adrianjiga](https://github.com/adrianjiga) · [LinkedIn](https://www.linkedin.com/in/adrianjiga/)
