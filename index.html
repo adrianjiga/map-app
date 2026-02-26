@@ -5,27 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <link rel="shortcut icon" type="image/png" href="/icon.png" />
-
     <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-
-    <link rel="stylesheet" href="style.css" />
-
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-      integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
-      crossorigin=""
-    />
-    <script
-      defer
-      src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
-      integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
-      crossorigin=""
-    ></script>
-    <script defer src="script.js"></script>
+    <script type="module" src="/src/main.js"></script>
     <title>Workout Map</title>
   </head>
   <body>
@@ -70,10 +54,10 @@
         </form>
       </ul>
 
-      <p class="copyright">
+      <p class="sidebar__copyright">
         &copy; Copyright by
         <a
-          class="twitter-link"
+          class="sidebar__link"
           target="_blank"
           href="https://github.com/adrianjiga"
           >Adrian Jiga
