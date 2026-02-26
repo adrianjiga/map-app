@@ -62,7 +62,7 @@ export class MapService {
       .addTo(this.#map)
       .bindPopup(
         L.popup({
-          maxWidth: 250,
+          maxWidth: 280,
           minWidth: 100,
           autoClose: false,
           closeOnClick: false,
