@@ -11,12 +11,13 @@ export class App {
   #formController;
   #renderer;
   #errorBanner;
+  #sidebarEl;
 
   constructor() {
-    const sidebarEl = document.querySelector('.sidebar');
+    this.#sidebarEl = document.querySelector('.sidebar');
     const workoutsEl = document.querySelector('.workouts');
 
-    this.#errorBanner = new ErrorBanner({ containerEl: sidebarEl });
+    this.#errorBanner = new ErrorBanner({ containerEl: this.#sidebarEl });
 
     this.#renderer = new WorkoutRenderer({
       containerEl: workoutsEl,
@@ -30,8 +31,13 @@ export class App {
     });
 
     this.#mapService = new MapService({
-      onMapClick: (mapEvent) => this.#formController.show(mapEvent),
+      onMapClick: (mapEvent) => {
+        this.#formController.show(mapEvent);
+        if (window.innerWidth <= 768) this.#openSidebar();
+      },
     });
+
+    this.#initMobileNav();
 
     this.#workouts = WorkoutStorage.load();
     this.#renderer.renderAll(this.#workouts);
@@ -65,7 +71,26 @@ export class App {
 
   #handleWorkoutClick(workoutId) {
     const workout = this.#workouts.find((w) => w.id === workoutId);
-    if (workout) this.#mapService.moveToWorkout(workout);
+    if (!workout) return;
+    this.#mapService.moveToWorkout(workout);
+    if (window.innerWidth <= 768) this.#closeSidebar();
+  }
+
+  #initMobileNav() {
+    document
+      .querySelector('.mobile-menu-btn')
+      ?.addEventListener('click', () => this.#openSidebar());
+    document
+      .querySelector('.sidebar__close-btn')
+      ?.addEventListener('click', () => this.#closeSidebar());
+  }
+
+  #openSidebar() {
+    this.#sidebarEl.classList.add('sidebar--open');
+  }
+
+  #closeSidebar() {
+    this.#sidebarEl.classList.remove('sidebar--open');
   }
 
   reset() {
