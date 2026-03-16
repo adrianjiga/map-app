@@ -19,7 +19,7 @@
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
     "jsdom": "^28.1.0",
