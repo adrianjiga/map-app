@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { WorkoutStorage } from '../storage/WorkoutStorage.js';
 import { Running } from '../workouts/Running.js';
 import { Cycling } from '../workouts/Cycling.js';
@@ -68,5 +68,25 @@ describe('WorkoutStorage', () => {
     const loaded = WorkoutStorage.load();
     expect(loaded[0] instanceof Running).toBe(true);
     expect(loaded[1] instanceof Cycling).toBe(true);
+  });
+
+  describe('when localStorage rejects the write', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('save returns false instead of throwing', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('QuotaExceededError');
+      });
+      const r = new Running([0, 0], 5, 30, 160);
+      expect(() => WorkoutStorage.save([r])).not.toThrow();
+      expect(WorkoutStorage.save([r])).toBe(false);
+    });
+  });
+
+  it('save returns true on success', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    expect(WorkoutStorage.save([r])).toBe(true);
   });
 });

@@ -71,7 +71,12 @@ export class App {
     this.#workouts.push(workout);
     this.#mapService.renderMarker(workout);
     this.#renderer.render(workout);
-    WorkoutStorage.save(this.#workouts);
+
+    if (!WorkoutStorage.save(this.#workouts)) {
+      this.#errorBanner.show(
+        'Workout added to the map but could not be saved — it will be lost on reload.'
+      );
+    }
   }
 
   #handleWorkoutClick(workoutId) {

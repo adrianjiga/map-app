@@ -7,8 +7,19 @@ const WORKOUT_REGISTRY = {
 };
 
 export class WorkoutStorage {
+  /**
+   * Persists workouts to localStorage.
+   * @returns {boolean} false if storage rejected the write (quota exceeded,
+   *   Safari private mode) so the caller can tell the user their workout will
+   *   not survive a reload.
+   */
   static save(workouts) {
-    localStorage.setItem('workouts', JSON.stringify(workouts));
+    try {
+      localStorage.setItem('workouts', JSON.stringify(workouts));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   static load() {
