@@ -595,3 +595,25 @@ a:visited {
     height: 4.4rem;
   }
 }
+
+/* ===================== REDUCED MOTION ===================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .form,
+  .form.hidden {
+    transition: none;
+    transform: none;
+  }
+
+  .workout:hover {
+    transform: none;
+  }
+}

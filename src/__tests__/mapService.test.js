@@ -127,6 +127,29 @@ describe('MapService', () => {
     );
   });
 
+  it('pans without animation when the user prefers reduced motion', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true }))
+    );
+    const r = new Running([51.5, -0.09], 5, 30, 160);
+    service.moveToWorkout(r);
+
+    const mapInstance = L.map.mock.results[0].value;
+    expect(mapInstance.setView).toHaveBeenCalledWith(
+      r.coords,
+      expect.any(Number),
+      expect.objectContaining({ animate: false })
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it('treats a missing matchMedia as no reduced-motion preference', () => {
+    vi.stubGlobal('matchMedia', undefined);
+    expect(MapService.prefersReducedMotion()).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
   it('isReady is false before init and true after', async () => {
     localStorage.setItem('lastPosition', JSON.stringify([51.5, -0.09]));
     const pending = new MapService({ onMapClick: vi.fn() });

@@ -25,6 +25,13 @@ export class MapService {
 
   #CACHED_COORDS_KEY = 'lastPosition';
 
+  static prefersReducedMotion() {
+    // matchMedia is absent in jsdom and older embedded webviews.
+    return Boolean(
+      globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+    );
+  }
+
   get isReady() {
     return Boolean(this.#map);
   }
@@ -111,9 +118,10 @@ export class MapService {
 
   moveToWorkout(workout) {
     this.#whenReady(() => {
+      const animate = !MapService.prefersReducedMotion();
       this.#map.setView(workout.coords, this.#mapZoomLevel, {
-        animate: true,
-        pan: { duration: 1 },
+        animate,
+        pan: { duration: animate ? 1 : 0 },
       });
     });
   }
