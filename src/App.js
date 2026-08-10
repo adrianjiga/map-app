@@ -34,6 +34,7 @@ export class App {
       containerEl: workoutsEl,
       onWorkoutClick: this.#handleWorkoutClick.bind(this),
       onWorkoutDelete: this.#handleWorkoutDelete.bind(this),
+      onWorkoutEdit: this.#handleWorkoutEdit.bind(this),
     });
 
     this.#formController = new WorkoutFormController({
@@ -84,6 +85,11 @@ export class App {
       return;
     }
 
+    if (data.editingId) {
+      this.#applyEdit(data.editingId, Cls.fromFormData(data));
+      return;
+    }
+
     const workout = Cls.fromFormData(data);
 
     this.#workouts.push(workout);
@@ -94,6 +100,36 @@ export class App {
     this.#persist(
       'Workout added to the map but could not be saved — it will be lost on reload.'
     );
+  }
+
+  #handleWorkoutEdit(workoutId) {
+    const workout = this.#workouts.find((w) => w.id === workoutId);
+    if (!workout) return;
+    this.#formController.showForEdit(workout);
+  }
+
+  /**
+   * Swaps the stored workout for a freshly constructed one, keeping the
+   * original id and date so the card keeps its identity and place in the list.
+   * Building a new instance rather than mutating is what makes changing the
+   * type (running <-> cycling) work: pace/speed and the popup class come from
+   * the class, not from the object's current fields.
+   */
+  #applyEdit(workoutId, replacement) {
+    const index = this.#workouts.findIndex((w) => w.id === workoutId);
+    if (index === -1) return;
+
+    const original = this.#workouts[index];
+    replacement.id = original.id;
+    replacement.date = original.date;
+    replacement._setDescription();
+
+    this.#workouts[index] = replacement;
+    this.#mapService.removeMarker(workoutId);
+    this.#mapService.renderMarker(replacement);
+    this.#renderer.replace(workoutId, replacement);
+    this.#refreshSidebar();
+    this.#persist();
   }
 
   #persist(failureMessage = 'Changes could not be saved to this browser.') {

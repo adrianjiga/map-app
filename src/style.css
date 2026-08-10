@@ -358,10 +358,15 @@ body {
   outline-offset: 3px;
 }
 
-.workout__delete {
+.workout__actions {
   position: absolute;
   top: 0.8rem;
   right: 0.8rem;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.workout__action {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -381,9 +386,14 @@ body {
     border-color 0.2s ease;
 }
 
-.workout:hover .workout__delete,
-.workout__delete:focus-visible {
+.workout:hover .workout__action,
+.workout__action:focus-visible {
   opacity: 1;
+}
+
+.workout__edit:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
 }
 
 .workout__delete:hover {
@@ -391,14 +401,14 @@ body {
   border-color: var(--color-error-text);
 }
 
-.workout__delete:focus-visible {
+.workout__action:focus-visible {
   outline: 2px solid var(--accent-ui);
   outline-offset: 2px;
 }
 
-/* Touch devices have no hover, so the control must always be reachable. */
+/* Touch devices have no hover, so the controls must always be reachable. */
 @media (hover: none) {
-  .workout__delete {
+  .workout__action {
     opacity: 1;
   }
 }
@@ -432,7 +442,7 @@ body {
   gap: 1.5rem;
   /* Clears the absolutely-positioned delete button so the type badge, which
      sits at the same corner, is never overlapped by it. */
-  padding-right: 2.8rem;
+  padding-right: 6rem;
   margin-bottom: 1.2rem;
 }
 
