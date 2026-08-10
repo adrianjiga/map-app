@@ -15,6 +15,8 @@
 
   /* Interactive */
   --accent-ui: #6366f1;
+  /* White text on --accent-ui is only 4.46:1; this shade clears WCAG AA. */
+  --accent-ui-strong: #4f46e5;
   --color-error: #ef4444;
 
   /* Borders & surfaces */
@@ -423,7 +425,7 @@ a:visited {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #fff;
-  background-color: var(--accent-ui);
+  background-color: var(--accent-ui-strong);
   border: none;
   border-radius: 6px;
   padding: 0.7rem 1.8rem;
@@ -435,7 +437,7 @@ a:visited {
 }
 
 .form__btn:hover {
-  background-color: #4f46e5;
+  background-color: #4338ca;
 }
 
 .form__btn:active {
