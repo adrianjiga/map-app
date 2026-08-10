@@ -13,14 +13,14 @@ The app requires browser geolocation permission to initialize the map.
 
 Other scripts:
 
-| Script | Description |
-|---|---|
-| `npm test` | Run unit test suite (Vitest + jsdom) |
-| `npm run test:coverage` | Unit tests with coverage thresholds |
-| `npm run test:e2e` | Playwright smoke tests against the production build |
-| `npm run lint` | ESLint check |
-| `npm run format` | Prettier format |
-| `npm run build` | Production build via Vite |
+| Script                  | Description                                         |
+| ----------------------- | --------------------------------------------------- |
+| `npm test`              | Run unit test suite (Vitest + jsdom)                |
+| `npm run test:coverage` | Unit tests with coverage thresholds                 |
+| `npm run test:e2e`      | Playwright smoke tests against the production build |
+| `npm run lint`          | ESLint check                                        |
+| `npm run format`        | Prettier format                                     |
+| `npm run build`         | Production build via Vite                           |
 
 ## Architecture
 

@@ -28,13 +28,13 @@ Requires browser geolocation permission to initialize the map.
 
 ## Scripts
 
-| Script | Description |
-|---|---|
-| `npm run dev` | Start dev server |
-| `npm run build` | Production build |
-| `npm test` | Run test suite |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier |
+| Script           | Description      |
+| ---------------- | ---------------- |
+| `npm run dev`    | Start dev server |
+| `npm run build`  | Production build |
+| `npm test`       | Run test suite   |
+| `npm run lint`   | ESLint           |
+| `npm run format` | Prettier         |
 
 ## Author
 
