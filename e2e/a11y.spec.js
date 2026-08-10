@@ -14,11 +14,22 @@ const scan = (page) =>
 const serious = (results) =>
   results.violations.filter((v) => ['serious', 'critical'].includes(v.impact));
 
+// Include the target selector and axe's own message: a bare rule id makes a CI
+// failure impossible to diagnose without reproducing it locally.
 const describeViolations = (violations) =>
-  violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.length} node(s)`);
+  violations.flatMap((v) =>
+    v.nodes.map(
+      (n) =>
+        `${v.id} (${v.impact}) at ${n.target.join(' ')} — ${
+          [...n.any, ...n.all][0]?.message ?? v.help
+        }`
+    )
+  );
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/map-app/');
+  // domcontentloaded, not load: OpenStreetMap tiles and web fonts are
+  // third-party and slow, and nothing asserted here waits on them.
+  await page.goto('/map-app/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#map.leaflet-container')).toBeVisible();
 });
 
