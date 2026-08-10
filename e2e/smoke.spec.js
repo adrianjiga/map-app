@@ -11,7 +11,9 @@ async function addRunningWorkout(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/map-app/');
+  // domcontentloaded, not load: OpenStreetMap tiles and web fonts are
+  // third-party and slow, and nothing asserted here waits on them.
+  await page.goto('/map-app/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#map.leaflet-container')).toBeVisible();
 });
 
@@ -72,7 +74,7 @@ test('workouts survive a reload', async ({ page }) => {
   await addRunningWorkout(page);
   await expect(page.locator('.workout')).toHaveCount(1);
 
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('.workout')).toHaveCount(1);
   await expect(page.locator('.leaflet-marker-icon')).toHaveCount(1);
@@ -85,7 +87,7 @@ test('clicking a stored workout pans the map without erroring', async ({
   page.on('pageerror', (error) => errors.push(error.message));
 
   await addRunningWorkout(page);
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
 
   // Clicking the moment the card appears exercises the window where the
   // sidebar exists but the map has not resolved yet.

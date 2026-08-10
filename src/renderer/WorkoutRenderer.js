@@ -1,10 +1,12 @@
 export class WorkoutRenderer {
   #containerEl;
   #onWorkoutClick;
+  #onWorkoutDelete;
 
-  constructor({ containerEl, onWorkoutClick }) {
+  constructor({ containerEl, onWorkoutClick, onWorkoutDelete }) {
     this.#containerEl = containerEl;
     this.#onWorkoutClick = onWorkoutClick;
+    this.#onWorkoutDelete = onWorkoutDelete;
     this.#containerEl.addEventListener('click', this.#handleClick.bind(this));
   }
 
@@ -17,10 +19,37 @@ export class WorkoutRenderer {
     } else {
       this.#containerEl.append(itemEl);
     }
+
+    this.#syncEmptyState();
   }
 
   renderAll(workouts) {
     workouts.forEach((workout) => this.render(workout));
+    this.#syncEmptyState();
+  }
+
+  remove(workoutId) {
+    this.#itemFor(workoutId)?.remove();
+    this.#syncEmptyState();
+  }
+
+  clear() {
+    this.#containerEl
+      .querySelectorAll('.workout')
+      .forEach((itemEl) => itemEl.remove());
+    this.#syncEmptyState();
+  }
+
+  #syncEmptyState() {
+    const emptyEl = this.#containerEl.querySelector('.workouts__empty');
+    if (!emptyEl) return;
+    emptyEl.hidden = this.#containerEl.querySelector('.workout') !== null;
+  }
+
+  #itemFor(workoutId) {
+    return [...this.#containerEl.querySelectorAll('.workout')].find(
+      (itemEl) => itemEl.dataset.id === workoutId
+    );
   }
 
   // Built as nodes rather than interpolated HTML: every value here originates
@@ -62,7 +91,15 @@ export class WorkoutRenderer {
     );
 
     buttonEl.append(headerEl, metricsEl);
-    itemEl.append(buttonEl);
+
+    // Sibling of the select button, not a child: buttons cannot nest.
+    const deleteEl = document.createElement('button');
+    deleteEl.type = 'button';
+    deleteEl.className = 'workout__delete';
+    deleteEl.setAttribute('aria-label', `Delete ${workout.description}`);
+    deleteEl.textContent = '✕';
+
+    itemEl.append(buttonEl, deleteEl);
     return itemEl;
   }
 
@@ -90,6 +127,12 @@ export class WorkoutRenderer {
   #handleClick(e) {
     const workoutEl = e.target.closest('.workout');
     if (!workoutEl) return;
+
+    if (e.target.closest('.workout__delete')) {
+      this.#onWorkoutDelete?.(workoutEl.dataset.id);
+      return;
+    }
+
     this.#onWorkoutClick(workoutEl.dataset.id);
   }
 }

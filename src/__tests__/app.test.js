@@ -15,7 +15,10 @@ vi.mock('../map/MapService.js', () => ({
       this.opts = opts;
       this.init = vi.fn(() => mocks.initResult ?? Promise.resolve());
       this.renderMarker = vi.fn();
+      this.removeMarker = vi.fn();
+      this.removeAllMarkers = vi.fn();
       this.moveToWorkout = vi.fn();
+      this.fitToWorkouts = vi.fn();
       this.renderStoredMarkers = vi.fn();
       mocks.maps.push(this);
     }
@@ -39,6 +42,8 @@ vi.mock('../renderer/WorkoutRenderer.js', () => ({
       this.opts = opts;
       this.render = vi.fn();
       this.renderAll = vi.fn();
+      this.remove = vi.fn();
+      this.clear = vi.fn();
       mocks.renderers.push(this);
     }
   },
@@ -80,8 +85,18 @@ function buildDom() {
     <button class="mobile-menu-btn" aria-controls="sidebar" aria-expanded="false"></button>
     <div class="sidebar" id="sidebar">
       <button class="sidebar__close-btn"></button>
+      <div class="workout-summary" hidden>
+        <span data-summary="count">0</span>
+        <span data-summary="distance">0</span>
+        <span data-summary="duration">0</span>
+      </div>
+      <div class="sidebar__actions" hidden>
+        <button type="button" data-action="fit">Fit to markers</button>
+        <button type="button" data-action="clear">Clear all</button>
+      </div>
       <ul class="workouts">
         <li class="form__item"><form class="form hidden"></form></li>
+        <li class="workouts__empty"></li>
       </ul>
       <a class="sidebar__link" href="https://example.com">Author</a>
     </div>
@@ -265,6 +280,61 @@ describe('App', () => {
     });
   });
 
+  describe('deleting a workout', () => {
+    const addWorkout = () => {
+      lastForm().opts.onSubmit(RUNNING_FORM_DATA);
+      return lastMap().renderMarker.mock.calls.at(-1)[0];
+    };
+
+    it('removes the marker, the card and the stored entry', () => {
+      new App();
+      const created = addWorkout();
+      expect(WorkoutStorage.load()).toHaveLength(1);
+
+      lastRenderer().opts.onWorkoutDelete(created.id);
+
+      expect(lastMap().removeMarker).toHaveBeenCalledWith(created.id);
+      expect(lastRenderer().remove).toHaveBeenCalledWith(created.id);
+      expect(WorkoutStorage.load()).toHaveLength(0);
+    });
+
+    it('deletes only the requested workout', () => {
+      new App();
+      const first = addWorkout();
+      const second = addWorkout();
+
+      lastRenderer().opts.onWorkoutDelete(first.id);
+
+      const remaining = WorkoutStorage.load();
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].id).toBe(second.id);
+    });
+
+    it('ignores an unknown id', () => {
+      new App();
+      addWorkout();
+
+      lastRenderer().opts.onWorkoutDelete('nope');
+
+      expect(lastMap().removeMarker).not.toHaveBeenCalled();
+      expect(WorkoutStorage.load()).toHaveLength(1);
+    });
+
+    it('warns when the deletion could not be persisted', () => {
+      new App();
+      const created = addWorkout();
+
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('QuotaExceededError');
+      });
+      lastRenderer().opts.onWorkoutDelete(created.id);
+
+      expect(lastBanner().show).toHaveBeenCalledWith(
+        expect.stringContaining('could not be saved')
+      );
+    });
+  });
+
   describe('map click', () => {
     it('opens the form at the clicked position', () => {
       new App();
@@ -425,17 +495,101 @@ describe('App', () => {
     });
   });
 
+  describe('sidebar controls', () => {
+    const addWorkout = () => {
+      lastForm().opts.onSubmit(RUNNING_FORM_DATA);
+      return lastMap().renderMarker.mock.calls.at(-1)[0];
+    };
+    const actionsEl = () => document.querySelector('.sidebar__actions');
+    const clearBtn = () => document.querySelector('[data-action="clear"]');
+
+    it('hides the summary and actions with no workouts', () => {
+      new App();
+      expect(actionsEl().hidden).toBe(true);
+      expect(document.querySelector('.workout-summary').hidden).toBe(true);
+    });
+
+    it('reveals them once a workout exists', () => {
+      new App();
+      addWorkout();
+      expect(actionsEl().hidden).toBe(false);
+      expect(document.querySelector('.workout-summary').hidden).toBe(false);
+      expect(document.querySelector('[data-summary="count"]').textContent).toBe(
+        '1'
+      );
+    });
+
+    it('fit button asks the map to fit every marker', () => {
+      new App();
+      addWorkout();
+      document.querySelector('[data-action="fit"]').click();
+      expect(lastMap().fitToWorkouts).toHaveBeenCalledTimes(1);
+    });
+
+    it('first clear click only arms the button', () => {
+      new App();
+      addWorkout();
+
+      clearBtn().click();
+
+      expect(clearBtn().textContent).toBe('Confirm clear?');
+      expect(lastMap().removeAllMarkers).not.toHaveBeenCalled();
+      expect(WorkoutStorage.load()).toHaveLength(1);
+    });
+
+    it('second clear click wipes workouts, markers and storage', () => {
+      new App();
+      addWorkout();
+
+      clearBtn().click();
+      clearBtn().click();
+
+      expect(lastMap().removeAllMarkers).toHaveBeenCalledTimes(1);
+      expect(lastRenderer().clear).toHaveBeenCalledTimes(1);
+      expect(WorkoutStorage.load()).toHaveLength(0);
+      expect(actionsEl().hidden).toBe(true);
+    });
+
+    it('the armed state lapses after the confirm window', () => {
+      vi.useFakeTimers();
+      new App();
+      addWorkout();
+
+      clearBtn().click();
+      vi.advanceTimersByTime(App.CLEAR_CONFIRM_MS);
+      expect(clearBtn().textContent).toBe('Clear all');
+
+      // A later click re-arms rather than clearing.
+      clearBtn().click();
+      expect(WorkoutStorage.load()).toHaveLength(1);
+      vi.useRealTimers();
+    });
+
+    it('adding a workout disarms a pending clear', () => {
+      new App();
+      addWorkout();
+      clearBtn().click();
+
+      addWorkout();
+
+      expect(clearBtn().textContent).toBe('Clear all');
+      expect(WorkoutStorage.load()).toHaveLength(2);
+    });
+  });
+
   describe('reset', () => {
     it('clears stored workouts and reloads', () => {
       const reload = vi.fn();
       vi.stubGlobal('location', { reload });
 
       WorkoutStorage.save([new Running([1, 2], 5, 30, 170)]);
+      localStorage.setItem('lastPosition', JSON.stringify([1, 2]));
       const app = new App();
 
       app.reset();
 
       expect(localStorage.getItem('workouts')).toBeNull();
+      expect(localStorage.getItem('lastPosition')).toBeNull();
       expect(reload).toHaveBeenCalledTimes(1);
     });
   });

@@ -3,15 +3,23 @@ import { WorkoutFormController } from './form/WorkoutFormController.js';
 import { WorkoutRenderer } from './renderer/WorkoutRenderer.js';
 import { WorkoutStorage } from './storage/WorkoutStorage.js';
 import { ErrorBanner } from './ui/ErrorBanner.js';
+import { WorkoutSummary } from './ui/WorkoutSummary.js';
 import { WORKOUT_REGISTRY } from './workouts/index.js';
 
 export class App {
+  // How long the "Clear all" button stays armed before reverting.
+  static CLEAR_CONFIRM_MS = 5000;
+
   #workouts = [];
   #mapService;
   #formController;
   #renderer;
   #errorBanner;
+  #summary;
   #sidebarEl;
+  #actionsEl;
+  #clearBtnEl;
+  #clearConfirmTimer;
   #menuBtnEl;
   #closeBtnEl;
   #mapEl;
@@ -25,6 +33,7 @@ export class App {
     this.#renderer = new WorkoutRenderer({
       containerEl: workoutsEl,
       onWorkoutClick: this.#handleWorkoutClick.bind(this),
+      onWorkoutDelete: this.#handleWorkoutDelete.bind(this),
     });
 
     this.#formController = new WorkoutFormController({
@@ -40,10 +49,16 @@ export class App {
       },
     });
 
+    this.#summary = new WorkoutSummary({
+      containerEl: document.querySelector('.workout-summary'),
+    });
+
     this.#initMobileNav();
+    this.#initSidebarActions();
 
     this.#workouts = WorkoutStorage.load();
     this.#renderer.renderAll(this.#workouts);
+    this.#refreshSidebar();
 
     // Cards render before geolocation resolves; keep them inert until there is
     // a map to pan.
@@ -74,12 +89,81 @@ export class App {
     this.#workouts.push(workout);
     this.#mapService.renderMarker(workout);
     this.#renderer.render(workout);
+    this.#refreshSidebar();
 
+    this.#persist(
+      'Workout added to the map but could not be saved — it will be lost on reload.'
+    );
+  }
+
+  #persist(failureMessage = 'Changes could not be saved to this browser.') {
     if (!WorkoutStorage.save(this.#workouts)) {
-      this.#errorBanner.show(
-        'Workout added to the map but could not be saved — it will be lost on reload.'
-      );
+      this.#errorBanner.show(failureMessage);
     }
+  }
+
+  #handleWorkoutDelete(workoutId) {
+    const index = this.#workouts.findIndex((w) => w.id === workoutId);
+    if (index === -1) return;
+
+    this.#workouts.splice(index, 1);
+    this.#mapService.removeMarker(workoutId);
+    this.#renderer.remove(workoutId);
+    this.#refreshSidebar();
+    this.#persist();
+  }
+
+  #initSidebarActions() {
+    this.#actionsEl = document.querySelector('.sidebar__actions');
+    this.#clearBtnEl = document.querySelector('[data-action="clear"]');
+
+    document
+      .querySelector('[data-action="fit"]')
+      ?.addEventListener('click', () => this.#mapService.fitToWorkouts());
+    this.#clearBtnEl?.addEventListener('click', () => this.#handleClearAll());
+  }
+
+  #refreshSidebar() {
+    this.#summary.render(this.#workouts);
+    if (this.#actionsEl) this.#actionsEl.hidden = this.#workouts.length === 0;
+    if (this.#clearConfirmTimer) this.#disarmClear();
+  }
+
+  // A two-step button rather than confirm(): native dialogs are banned here,
+  // and a real modal would need its own focus management to stay accessible.
+  #handleClearAll() {
+    if (!this.#clearConfirmTimer) {
+      this.#armClear();
+      return;
+    }
+    this.#disarmClear();
+    this.#clearAllWorkouts();
+  }
+
+  #armClear() {
+    if (!this.#clearBtnEl) return;
+    this.#clearBtnEl.textContent = 'Confirm clear?';
+    this.#clearBtnEl.classList.add('sidebar__action--armed');
+    this.#clearConfirmTimer = setTimeout(
+      () => this.#disarmClear(),
+      App.CLEAR_CONFIRM_MS
+    );
+  }
+
+  #disarmClear() {
+    clearTimeout(this.#clearConfirmTimer);
+    this.#clearConfirmTimer = undefined;
+    if (!this.#clearBtnEl) return;
+    this.#clearBtnEl.textContent = 'Clear all';
+    this.#clearBtnEl.classList.remove('sidebar__action--armed');
+  }
+
+  #clearAllWorkouts() {
+    this.#workouts = [];
+    this.#mapService.removeAllMarkers();
+    this.#renderer.clear();
+    this.#refreshSidebar();
+    this.#persist();
   }
 
   #handleWorkoutClick(workoutId) {
@@ -156,6 +240,7 @@ export class App {
 
   reset() {
     localStorage.removeItem('workouts');
+    localStorage.removeItem('lastPosition');
     location.reload();
   }
 }

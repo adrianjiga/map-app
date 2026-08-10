@@ -11,20 +11,41 @@ const scan = (page) =>
     .exclude('.leaflet-control-container')
     .analyze();
 
+// The form fades in over 0.5s and cards slide in over 0.4s. Scanning mid
+// transition makes axe measure contrast against a partially transparent
+// element, which fails intermittently.
+const settled = (page) =>
+  page.waitForFunction(() =>
+    document.getAnimations().every((a) => a.playState !== 'running')
+  );
+
 const serious = (results) =>
   results.violations.filter((v) => ['serious', 'critical'].includes(v.impact));
 
+// Include the target selector and axe's own message: a bare rule id makes a CI
+// failure impossible to diagnose without reproducing it locally.
 const describeViolations = (violations) =>
-  violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.length} node(s)`);
+  violations.flatMap((v) =>
+    v.nodes.map(
+      (n) =>
+        `${v.id} (${v.impact}) at ${n.target.join(' ')} — ${
+          [...n.any, ...n.all][0]?.message ?? v.help
+        }`
+    )
+  );
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/map-app/');
+  // domcontentloaded, not load: OpenStreetMap tiles and web fonts are
+  // third-party and slow, and nothing asserted here waits on them.
+  await page.goto('/map-app/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#map.leaflet-container')).toBeVisible();
 });
 
 test('landing page has no serious accessibility violations', async ({
   page,
 }) => {
+  await settled(page);
+
   const results = await scan(page);
   expect(describeViolations(serious(results))).toEqual([]);
 });
@@ -32,6 +53,7 @@ test('landing page has no serious accessibility violations', async ({
 test('open form has no serious accessibility violations', async ({ page }) => {
   await page.locator('#map').click(MAP_CLICK);
   await expect(page.locator('.form')).not.toHaveClass(/hidden/);
+  await settled(page);
 
   const results = await scan(page);
   expect(describeViolations(serious(results))).toEqual([]);
@@ -46,6 +68,7 @@ test('rendered workout cards have no serious accessibility violations', async ({
   await page.locator('.form__input--cadence').fill('170');
   await page.locator('.form__btn').click();
   await expect(page.locator('.workout')).toHaveCount(1);
+  await settled(page);
 
   const results = await scan(page);
   expect(describeViolations(serious(results))).toEqual([]);
