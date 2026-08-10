@@ -53,12 +53,12 @@ src/
     ErrorBanner.js            role=alert live region + dismiss button; no alert()
     WorkoutSummary.js         Count / total distance / total duration strip
   style.css
-  __tests__/                  9 test files + setup.js (169 tests)
+  __tests__/                  One unit suite per module + setup.js
 e2e/
   smoke.spec.js               Core flows against the production build
   a11y.spec.js                axe scans + keyboard and focus behaviour
   workouts.spec.js            Delete, summary, clear-all, fit-to-markers
-                              (20 tests; run with `npm run test:e2e`)
+                              (run with `npm run test:e2e`)
 ```
 
 ### Initialization Flow

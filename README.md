@@ -82,8 +82,8 @@ including the accessibility and contrast invariants the test suite enforces.
 ## Testing
 
 ```bash
-npm run test:coverage   # 169 unit tests, thresholds enforced
-npm run test:e2e        # 20 end-to-end tests, incl. 3 axe scans
+npm run test:coverage   # unit tests, coverage thresholds enforced
+npm run test:e2e        # end-to-end tests, including axe accessibility scans
 ```
 
 The end-to-end suite runs against the **production build** rather than the dev
