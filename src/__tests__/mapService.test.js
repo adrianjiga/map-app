@@ -7,18 +7,27 @@ vi.mock('leaflet', () => {
   const mapInstance = {
     setView: vi.fn().mockReturnThis(),
     on: vi.fn().mockReturnThis(),
+    removeLayer: vi.fn(),
+    fitBounds: vi.fn(),
   };
-  const markerChain = {
-    addTo: vi.fn().mockReturnThis(),
-    bindPopup: vi.fn().mockReturnThis(),
-    setPopupContent: vi.fn().mockReturnThis(),
-    openPopup: vi.fn().mockReturnThis(),
+  // A fresh object per L.marker() call, so the registry holds distinct markers.
+  const newMarker = () => {
+    const marker = {
+      addTo: vi.fn(() => marker),
+      bindPopup: vi.fn(() => marker),
+      setPopupContent: vi.fn(() => marker),
+      openPopup: vi.fn(() => marker),
+    };
+    return marker;
   };
   return {
     default: {
       map: vi.fn(() => mapInstance),
       tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
-      marker: vi.fn(() => markerChain),
+      marker: vi.fn(() => newMarker()),
+      featureGroup: vi.fn((layers) => ({
+        getBounds: vi.fn(() => ({ layers })),
+      })),
       popup: vi.fn((opts) => opts),
       Icon: {
         Default: {
@@ -115,6 +124,69 @@ describe('MapService', () => {
     const r2 = new Running([51.6, -0.1], 8, 45, 180);
     service.renderStoredMarkers([r1, r2]);
     expect(L.marker).toHaveBeenCalledTimes(2);
+  });
+
+  it('removeMarker removes only that workout layer', () => {
+    const r1 = new Running([51.5, -0.09], 5, 30, 160);
+    const r2 = new Running([51.6, -0.1], 8, 45, 180);
+    service.renderMarker(r1);
+    service.renderMarker(r2);
+
+    const firstMarker = L.marker.mock.results[0].value;
+    service.removeMarker(r1.id);
+
+    const mapInstance = L.map.mock.results[0].value;
+    expect(mapInstance.removeLayer).toHaveBeenCalledTimes(1);
+    expect(mapInstance.removeLayer).toHaveBeenCalledWith(firstMarker);
+  });
+
+  it('removeMarker ignores an unknown id', () => {
+    service.renderMarker(new Running([51.5, -0.09], 5, 30, 160));
+    service.removeMarker('not-a-real-id');
+    expect(L.map.mock.results[0].value.removeLayer).not.toHaveBeenCalled();
+  });
+
+  it('removeAllMarkers clears every layer', () => {
+    service.renderMarker(new Running([51.5, -0.09], 5, 30, 160));
+    service.renderMarker(new Running([51.6, -0.1], 8, 45, 180));
+
+    service.removeAllMarkers();
+
+    const mapInstance = L.map.mock.results[0].value;
+    expect(mapInstance.removeLayer).toHaveBeenCalledTimes(2);
+
+    // Registry is empty, so a second sweep is a no-op.
+    service.removeAllMarkers();
+    expect(mapInstance.removeLayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('moveToWorkout opens that workout popup', () => {
+    const r = new Running([51.5, -0.09], 5, 30, 160);
+    service.renderMarker(r);
+    const marker = L.marker.mock.results[0].value;
+    marker.openPopup.mockClear();
+
+    service.moveToWorkout(r);
+
+    expect(marker.openPopup).toHaveBeenCalledTimes(1);
+  });
+
+  it('fitToWorkouts fits the bounds of every marker', () => {
+    service.renderMarker(new Running([51.5, -0.09], 5, 30, 160));
+    service.renderMarker(new Running([51.6, -0.1], 8, 45, 180));
+
+    service.fitToWorkouts();
+
+    expect(L.featureGroup).toHaveBeenCalledWith([
+      L.marker.mock.results[0].value,
+      L.marker.mock.results[1].value,
+    ]);
+    expect(L.map.mock.results[0].value.fitBounds).toHaveBeenCalled();
+  });
+
+  it('fitToWorkouts is a no-op with no markers', () => {
+    service.fitToWorkouts();
+    expect(L.map.mock.results[0].value.fitBounds).not.toHaveBeenCalled();
   });
 
   it('points Leaflet at bundler-resolved marker icons', () => {

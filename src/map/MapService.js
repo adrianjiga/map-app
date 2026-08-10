@@ -18,6 +18,8 @@ export class MapService {
   #mapZoomLevel = 13;
   #onMapClick;
   #pending = [];
+  // workout id -> L.Marker, so markers can be removed and fitted in bulk.
+  #markers = new Map();
 
   constructor({ onMapClick }) {
     this.#onMapClick = onMapClick;
@@ -100,7 +102,7 @@ export class MapService {
 
   renderMarker(workout) {
     this.#whenReady(() => {
-      L.marker(workout.coords)
+      const marker = L.marker(workout.coords)
         .addTo(this.#map)
         .bindPopup(
           L.popup({
@@ -113,6 +115,24 @@ export class MapService {
         )
         .setPopupContent(`${workout.emoji} ${workout.description}`)
         .openPopup();
+
+      this.#markers.set(workout.id, marker);
+    });
+  }
+
+  removeMarker(workoutId) {
+    this.#whenReady(() => {
+      const marker = this.#markers.get(workoutId);
+      if (!marker) return;
+      this.#map.removeLayer(marker);
+      this.#markers.delete(workoutId);
+    });
+  }
+
+  removeAllMarkers() {
+    this.#whenReady(() => {
+      this.#markers.forEach((marker) => this.#map.removeLayer(marker));
+      this.#markers.clear();
     });
   }
 
@@ -123,6 +143,15 @@ export class MapService {
         animate,
         pan: { duration: animate ? 1 : 0 },
       });
+      this.#markers.get(workout.id)?.openPopup();
+    });
+  }
+
+  fitToWorkouts() {
+    this.#whenReady(() => {
+      if (this.#markers.size === 0) return;
+      const group = L.featureGroup([...this.#markers.values()]);
+      this.#map.fitBounds(group.getBounds(), { padding: [40, 40] });
     });
   }
 
