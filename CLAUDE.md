@@ -15,7 +15,9 @@ Other scripts:
 
 | Script | Description |
 |---|---|
-| `npm test` | Run test suite (Vitest + jsdom) |
+| `npm test` | Run unit test suite (Vitest + jsdom) |
+| `npm run test:coverage` | Unit tests with coverage thresholds |
+| `npm run test:e2e` | Playwright smoke tests against the production build |
 | `npm run lint` | ESLint check |
 | `npm run format` | Prettier format |
 | `npm run build` | Production build via Vite |
@@ -34,9 +36,10 @@ src/
     Workout.js                Base class: date, id, _setDescription() with Intl
     Running.js                calcPace(), getSpecificFields(), static emoji/popupClass
     Cycling.js                calcSpeed(), getSpecificFields(), static emoji/popupClass
-    index.js                  Re-exports all workout classes
+    index.js                  Re-exports classes + WORKOUT_REGISTRY (type -> class)
   map/
     MapService.js             Wraps Leaflet: init() Promise, renderMarker(), moveToWorkout()
+                              Queues calls made before the map exists; pins icon URLs
   form/
     WorkoutFormController.js  Form show/hide/validate; fires onSubmit({type,...,coords})
   renderer/
@@ -48,7 +51,8 @@ src/
   ui/
     ErrorBanner.js            show(message)/hide() with auto-dismiss; no alert()
   style.css
-  __tests__/                  8 test files + setup.js (74 tests)
+  __tests__/                  8 test files + setup.js (104 tests)
+e2e/                          Playwright smoke suite against the production build
 ```
 
 ### Initialization Flow
@@ -64,20 +68,24 @@ src/
 
 - **Prototype restoration** — `WorkoutStorage.load()` uses `Object.create(Cls.prototype)` + `Object.assign` to restore full class instances from JSON; `getSpecificFields()` works on reloaded workouts.
 - **Static type metadata** — `Running.emoji`, `Running.popupClass` on the constructor; renderer and map code never branch on `workout.type`.
+- **Single workout registry** — `WORKOUT_REGISTRY` in `src/workouts/index.js` maps type to class. `App` constructs via `Cls.fromFormData(data)` and `WorkoutStorage` restores prototypes from the same map, so neither branches on type.
+- **Leaflet icon URLs are pinned** — `MapService` calls `L.Icon.Default.mergeOptions()` with bundler-resolved imports. Leaflet's own path-guessing reads a CSS `background-image` that Vite inlines as a data URI, which 404s the markers in a production build.
+- **Map calls are queued before init** — the sidebar renders stored workouts before geolocation resolves, so `renderMarker()`/`moveToWorkout()` buffer until `#initMap()` runs. `.workouts--loading` keeps the cards inert meanwhile.
+- **`WorkoutStorage.save()` returns a boolean** — `false` means the write was rejected (quota, private mode); `App` surfaces that through `ErrorBanner`.
 - **No `alert()`** — all errors go through `ErrorBanner.show()` with 4s auto-dismiss.
 - **`app.reset()`** — exposed on `window.app`; call from the browser console to wipe localStorage and reload.
 - **`WorkoutFormController.ANIMATION_DURATION_MS = 1000`** — named constant for the form hide `setTimeout`.
 
 ### CSS Tokens
 
-- `--color-running: #00c46a` — running sidebar border + popup
-- `--color-cycling: #ffb545` — cycling sidebar border + popup
+- `--color-running: #00e887` — running sidebar border + popup
+- `--color-cycling: #ffaa00` — cycling sidebar border + popup
 
 ### Adding a New Workout Type
 
 1. `src/workouts/Swimming.js` — extend `Workout`, add `static emoji`, `static popupClass`, `getSpecificFields()`
 2. Add `validateSwimming` in `src/validation/validators.js`, register in `VALIDATORS`
-3. Add to `WORKOUT_REGISTRY` in `src/storage/WorkoutStorage.js`
+3. Add a `static fromFormData({ coords, distance, duration, ... })` factory, and register the class in `WORKOUT_REGISTRY` in `src/workouts/index.js`
 4. Add `<option value="swimming">` in `index.html`
 5. Add CSS token + `.workout--swimming` rule in `src/style.css`
 
