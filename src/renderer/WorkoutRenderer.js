@@ -9,33 +9,13 @@ export class WorkoutRenderer {
   }
 
   render(workout) {
-    const html = `
-      <li class="workout workout--${workout.type}" data-id="${workout.id}">
-        <div class="workout__header">
-          <h2 class="workout__title">${workout.description}</h2>
-          <span class="workout__type-badge">${workout.emoji}</span>
-        </div>
-        <div class="workout__metrics">
-          <div class="workout__details">
-            <span class="workout__icon">📍</span>
-            <span class="workout__value">${workout.distance}</span>
-            <span class="workout__unit">km</span>
-          </div>
-          <div class="workout__details">
-            <span class="workout__icon">⏱</span>
-            <span class="workout__value">${workout.duration}</span>
-            <span class="workout__unit">min</span>
-          </div>
-          ${this.#buildSpecificFieldsHTML(workout)}
-        </div>
-      </li>
-    `;
-
+    const itemEl = this.#buildItem(workout);
     const anchorEl = this.#containerEl.querySelector('.form__item, .form');
+
     if (anchorEl) {
-      anchorEl.insertAdjacentHTML('afterend', html);
+      anchorEl.after(itemEl);
     } else {
-      this.#containerEl.insertAdjacentHTML('beforeend', html);
+      this.#containerEl.append(itemEl);
     }
   }
 
@@ -43,18 +23,68 @@ export class WorkoutRenderer {
     workouts.forEach((workout) => this.render(workout));
   }
 
-  #buildSpecificFieldsHTML(workout) {
-    return workout
-      .getSpecificFields()
-      .map(
-        ({ icon, value, unit }) => `
-        <div class="workout__details">
-          <span class="workout__icon">${icon}</span>
-          <span class="workout__value">${value}</span>
-          <span class="workout__unit">${unit}</span>
-        </div>`
-      )
-      .join('');
+  // Built as nodes rather than interpolated HTML: every value here originates
+  // from localStorage, so string templating would make any future free-text
+  // field (a note, a custom title) a stored-XSS vector.
+  #buildItem(workout) {
+    const itemEl = document.createElement('li');
+    itemEl.className = `workout workout--${workout.type}`;
+    itemEl.dataset.id = workout.id;
+
+    // A real <button> carries keyboard operability, focus and Enter/Space for
+    // free. Its content model is phrasing content only, hence spans throughout.
+    const buttonEl = document.createElement('button');
+    buttonEl.type = 'button';
+    buttonEl.className = 'workout__select';
+
+    const headerEl = document.createElement('span');
+    headerEl.className = 'workout__header';
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'workout__title';
+    titleEl.textContent = workout.description;
+
+    const badgeEl = document.createElement('span');
+    badgeEl.className = 'workout__type-badge';
+    badgeEl.setAttribute('aria-hidden', 'true');
+    badgeEl.textContent = workout.emoji;
+
+    headerEl.append(titleEl, badgeEl);
+
+    const metricsEl = document.createElement('span');
+    metricsEl.className = 'workout__metrics';
+    metricsEl.append(
+      this.#buildDetail('📍', workout.distance, 'km'),
+      this.#buildDetail('⏱', workout.duration, 'min'),
+      ...workout
+        .getSpecificFields()
+        .map(({ icon, value, unit }) => this.#buildDetail(icon, value, unit))
+    );
+
+    buttonEl.append(headerEl, metricsEl);
+    itemEl.append(buttonEl);
+    return itemEl;
+  }
+
+  #buildDetail(icon, value, unit) {
+    const detailEl = document.createElement('span');
+    detailEl.className = 'workout__details';
+
+    const iconEl = document.createElement('span');
+    iconEl.className = 'workout__icon';
+    iconEl.setAttribute('aria-hidden', 'true');
+    iconEl.textContent = icon;
+
+    const valueEl = document.createElement('span');
+    valueEl.className = 'workout__value';
+    valueEl.textContent = value;
+
+    const unitEl = document.createElement('span');
+    unitEl.className = 'workout__unit';
+    unitEl.textContent = unit;
+
+    detailEl.append(iconEl, valueEl, unitEl);
+    return detailEl;
   }
 
   #handleClick(e) {

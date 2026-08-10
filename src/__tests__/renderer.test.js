@@ -85,6 +85,51 @@ describe('WorkoutRenderer', () => {
     expect(onWorkoutClick).not.toHaveBeenCalled();
   });
 
+  it('wraps card contents in a real button for keyboard users', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+    const button = containerEl.querySelector('.workout .workout__select');
+    expect(button).not.toBeNull();
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.type).toBe('button');
+  });
+
+  it('keyboard activation of the card fires onWorkoutClick', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+    // click() is what Enter/Space dispatch on a native button.
+    containerEl.querySelector('.workout__select').click();
+    expect(onWorkoutClick).toHaveBeenCalledWith(r.id);
+  });
+
+  it('hides decorative icons and the type badge from assistive tech', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+    const badge = containerEl.querySelector('.workout__type-badge');
+    expect(badge.getAttribute('aria-hidden')).toBe('true');
+    containerEl.querySelectorAll('.workout__icon').forEach((icon) => {
+      expect(icon.getAttribute('aria-hidden')).toBe('true');
+    });
+  });
+
+  it('contains only phrasing content inside the button', () => {
+    renderer.render(new Running([0, 0], 5, 30, 160));
+    const button = containerEl.querySelector('.workout__select');
+    const invalid = button.querySelectorAll('div, h1, h2, h3, h4, h5, h6, ul');
+    expect(invalid).toHaveLength(0);
+  });
+
+  it('escapes workout text instead of interpolating it into HTML', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    r.description = '<img src=x onerror="alert(1)">';
+    renderer.render(r);
+
+    const title = containerEl.querySelector('.workout__title');
+    expect(title.textContent).toBe('<img src=x onerror="alert(1)">');
+    expect(title.querySelector('img')).toBeNull();
+    expect(containerEl.querySelector('img')).toBeNull();
+  });
+
   it('Running output does not contain km/h (no type-switching leak)', () => {
     const r = new Running([0, 0], 5, 30, 160);
     renderer.render(r);

@@ -204,6 +204,24 @@ a:visited {
   transform: translateY(-2px);
 }
 
+.workout__select {
+  display: block;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.workout__select:focus-visible {
+  outline: 2px solid var(--accent-ui);
+  outline-offset: 3px;
+}
+
 .workout--running {
   border-left: 5px solid var(--color-running);
   box-shadow: var(--shadow-glow-running);
@@ -234,6 +252,7 @@ a:visited {
 }
 
 .workout__title {
+  display: block;
   font-family: 'Oxanium', sans-serif;
   font-size: 1.6rem;
   font-weight: 600;
@@ -241,6 +260,7 @@ a:visited {
 }
 
 .workout__type-badge {
+  display: block;
   font-size: 2rem;
   line-height: 1;
 }
@@ -258,12 +278,14 @@ a:visited {
 }
 
 .workout__icon {
+  display: block;
   font-size: 1.6rem;
   margin-right: 0.2rem;
   height: 0.28rem;
 }
 
 .workout__value {
+  display: block;
   font-family: 'Oxanium', sans-serif;
   font-size: 1.8rem;
   font-weight: 700;
@@ -271,6 +293,7 @@ a:visited {
 }
 
 .workout__unit {
+  display: block;
   font-size: 1.1rem;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -340,8 +363,12 @@ a:visited {
   transition: all 0.2s;
 }
 
+.form__input:focus-visible {
+  outline: 2px solid var(--accent-ui);
+  outline-offset: 2px;
+}
+
 .form__input:focus {
-  outline: none;
   border-bottom-color: var(--accent-ui);
   box-shadow: 0 2px 0 0 rgba(99, 102, 241, 0.3);
 }
