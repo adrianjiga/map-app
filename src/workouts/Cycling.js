@@ -1,4 +1,5 @@
 import { Workout } from './Workout.js';
+import { unitSystem, formatNumber } from '../units/units.js';
 
 export class Cycling extends Workout {
   type = 'cycling';
@@ -25,10 +26,18 @@ export class Cycling extends Workout {
     return this.speed;
   }
 
-  getSpecificFields() {
+  getSpecificFields(unitsKey) {
+    const system = unitSystem(unitsKey);
+    const distance = system.distanceFromKm(this.distance);
+    const speed = this.duration > 0 ? distance / (this.duration / 60) : 0;
+
     return [
-      { icon: '⚡️', value: this.speed.toFixed(1), unit: 'km/h' },
-      { icon: '⛰', value: this.elevation, unit: 'm' },
+      { icon: '⚡️', value: formatNumber(speed), unit: system.speedUnit },
+      {
+        icon: '⛰',
+        value: formatNumber(system.elevationFromMetres(this.elevation), 0),
+        unit: system.elevationUnit,
+      },
     ];
   }
 }

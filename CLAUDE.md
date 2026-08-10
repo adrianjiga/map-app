@@ -50,6 +50,9 @@ src/
                               delegation; render/replace/remove/clear
   storage/
     WorkoutStorage.js         save() -> boolean; load() with prototype-restoring hydration
+    WorkoutTransfer.js        serializeWorkouts()/parseWorkouts(): JSON export + guarded import
+  units/
+    units.js                  UNIT_SYSTEMS, unitSystem(), formatNumber()
   validation/
     validators.js             validateRunning, validateCycling, VALIDATORS map
   ui/
@@ -88,6 +91,10 @@ e2e/
 - **Marker registry** — `MapService` keeps `id -> L.Marker` so markers can be removed individually or fitted in bulk. All Leaflet state stays inside `MapService`; no other module knows Leaflet exists.
 - **Destructive actions are two-step, not `confirm()`** — "Clear all" arms for `App.CLEAR_CONFIRM_MS` and clears on a second click. Native dialogs are banned by `no-alert`, and a real modal would need its own focus management.
 - **`[hidden] { display: none !important }`** — any class setting `display` outranks the UA's `[hidden]` rule, so elements toggled via the attribute would otherwise stay visible.
+- **Units are display-only** — workouts are always stored in kilometres and metres; `UNIT_SYSTEMS` adapts on the way to the screen and back from the form. A unit change can never rewrite stored data.
+- **Untouched fields keep their exact value on edit** — converting a rounded display value back is lossy (10km shows as 6.21mi, which converts back to 9.994km). `WorkoutFormController` remembers what it prefilled and returns the original canonical number when a field is unchanged.
+- **Imports are rebuilt, never trusted** — `parseWorkouts()` revalidates every entry through `VALIDATORS`, checks coordinate ranges and dates, and recomputes derived fields (`description`, `pace`, `speed`) through the registry. A hand-edited file cannot inject display text or a broken prototype.
+- **Imports are additive and keyed by id** — restoring a backup into an empty app reproduces it exactly, importing twice is a no-op, and nothing is ever deleted by an import.
 - **One re-render path** — every list mutation and every view change goes through `App.#refreshSidebar()`, which derives the visible set with `selectWorkouts()` and drives the list, the markers, the summary and the control visibility from it. Targeted `renderer.render/replace/remove` calls were removed from the mutation paths: with sorting active, an insert-at-top shortcut silently ignores the chosen order.
 - **Filtering hides markers, it does not destroy them** — `MapService.showOnlyMarkers()` detaches and re-attaches layers, so popups and bindings survive a round trip through a filter. `fitToWorkouts()` only considers currently attached markers.
 - **The summary reflects the filter** — totals describe what is on screen, not the whole store, so a filtered view does not report numbers the user cannot see.

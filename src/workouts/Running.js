@@ -1,4 +1,5 @@
 import { Workout } from './Workout.js';
+import { unitSystem, formatNumber } from '../units/units.js';
 
 export class Running extends Workout {
   type = 'running';
@@ -25,9 +26,15 @@ export class Running extends Workout {
     return this.pace;
   }
 
-  getSpecificFields() {
+  // Pace is recomputed from the converted distance rather than converting the
+  // stored min/km figure, so the displayed unit and value can never disagree.
+  getSpecificFields(unitsKey) {
+    const system = unitSystem(unitsKey);
+    const distance = system.distanceFromKm(this.distance);
+    const pace = distance > 0 ? this.duration / distance : 0;
+
     return [
-      { icon: '⚡️', value: this.pace.toFixed(1), unit: 'min/km' },
+      { icon: '⚡️', value: formatNumber(pace), unit: system.paceUnit },
       { icon: '🦶🏼', value: this.cadence, unit: 'spm' },
     ];
   }

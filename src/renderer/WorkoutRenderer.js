@@ -1,9 +1,12 @@
+import { unitSystem, formatNumber } from '../units/units.js';
+
 export class WorkoutRenderer {
   #containerEl;
   #onWorkoutClick;
   #onWorkoutDelete;
   #onWorkoutEdit;
   #defaultEmptyMessage;
+  #units;
 
   constructor({ containerEl, onWorkoutClick, onWorkoutDelete, onWorkoutEdit }) {
     this.#containerEl = containerEl;
@@ -31,7 +34,8 @@ export class WorkoutRenderer {
    * mutation once sorting exists, because an insert-at-top shortcut would
    * silently ignore the active sort.
    */
-  renderAll(workouts, { emptyMessage } = {}) {
+  renderAll(workouts, { emptyMessage, units } = {}) {
+    this.#units = units ?? this.#units;
     this.clear();
 
     let anchorEl = this.#containerEl.querySelector('.form__item, .form');
@@ -120,13 +124,18 @@ export class WorkoutRenderer {
 
     headerEl.append(titleEl, badgeEl);
 
+    const system = unitSystem(this.#units);
     const metricsEl = document.createElement('span');
     metricsEl.className = 'workout__metrics';
     metricsEl.append(
-      this.#buildDetail('📍', workout.distance, 'km'),
+      this.#buildDetail(
+        '📍',
+        formatNumber(system.distanceFromKm(workout.distance)),
+        system.distanceUnit
+      ),
       this.#buildDetail('⏱', workout.duration, 'min'),
       ...workout
-        .getSpecificFields()
+        .getSpecificFields(this.#units)
         .map(({ icon, value, unit }) => this.#buildDetail(icon, value, unit))
     );
 

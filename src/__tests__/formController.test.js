@@ -276,6 +276,42 @@ describe('WorkoutFormController', () => {
       );
     });
 
+    it('prefills in the active unit system', () => {
+      controller.setUnits('imperial');
+      controller.showForEdit({ ...workout, distance: 10 });
+
+      expect(
+        Number(containerEl.querySelector('.form__input--distance').value)
+      ).toBeCloseTo(6.21, 2);
+    });
+
+    it('an untouched field keeps its exact stored value', () => {
+      controller.setUnits('imperial');
+      controller.showForEdit({ ...workout, distance: 10, elevation: 250 });
+
+      containerEl
+        .querySelector('.form')
+        .dispatchEvent(new Event('submit', { cancelable: true }));
+
+      // Converting the rounded 6.21mi back would have produced 9.994km.
+      const [data] = onSubmit.mock.calls.at(-1);
+      expect(data.distance).toBe(10);
+      expect(data.elevation).toBe(250);
+    });
+
+    it('a changed field is converted from the active unit', () => {
+      controller.setUnits('imperial');
+      controller.showForEdit({ ...workout, distance: 10 });
+
+      containerEl.querySelector('.form__input--distance').value = '1';
+      containerEl
+        .querySelector('.form')
+        .dispatchEvent(new Event('submit', { cancelable: true }));
+
+      const [data] = onSubmit.mock.calls.at(-1);
+      expect(data.distance).toBeCloseTo(1.609344, 6);
+    });
+
     it('a failed edit keeps the form in edit mode', () => {
       controller.showForEdit({ ...workout, distance: 20 });
       containerEl.querySelector('.form__input--distance').value = '-1';
@@ -287,6 +323,21 @@ describe('WorkoutFormController', () => {
       expect(onSubmit).not.toHaveBeenCalled();
       expect(controller.isEditing).toBe(true);
     });
+  });
+
+  it('a new workout in imperial units is stored in kilometres', () => {
+    controller.setUnits('imperial');
+    controller.show({ latlng: { lat: 1, lng: 2 } });
+
+    containerEl.querySelector('.form__input--distance').value = '1';
+    containerEl.querySelector('.form__input--duration').value = '30';
+    containerEl.querySelector('.form__input--cadence').value = '170';
+    containerEl
+      .querySelector('.form')
+      .dispatchEvent(new Event('submit', { cancelable: true }));
+
+    const [data] = onSubmit.mock.calls.at(-1);
+    expect(data.distance).toBeCloseTo(1.609344, 6);
   });
 
   it('negative elevation cycling is valid (downhill)', () => {

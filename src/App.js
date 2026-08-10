@@ -2,6 +2,11 @@ import { MapService } from './map/MapService.js';
 import { WorkoutFormController } from './form/WorkoutFormController.js';
 import { WorkoutRenderer } from './renderer/WorkoutRenderer.js';
 import { WorkoutStorage } from './storage/WorkoutStorage.js';
+import {
+  serializeWorkouts,
+  parseWorkouts,
+  exportFilename,
+} from './storage/WorkoutTransfer.js';
 import { ErrorBanner } from './ui/ErrorBanner.js';
 import { WorkoutSummary } from './ui/WorkoutSummary.js';
 import { WORKOUT_REGISTRY } from './workouts/index.js';
@@ -10,6 +15,7 @@ import {
   DEFAULT_SORT,
   DEFAULT_FILTER,
 } from './workouts/ordering.js';
+import { UNIT_SYSTEMS, DEFAULT_UNITS } from './units/units.js';
 
 export class App {
   // How long the "Clear all" button stays armed before reverting.
@@ -28,6 +34,7 @@ export class App {
   #clearConfirmTimer;
   #sort = DEFAULT_SORT;
   #filter = DEFAULT_FILTER;
+  #units = DEFAULT_UNITS;
   #menuBtnEl;
   #closeBtnEl;
   #mapEl;
@@ -45,8 +52,11 @@ export class App {
       onWorkoutEdit: this.#handleWorkoutEdit.bind(this),
     });
 
+    this.#units = App.#loadUnits();
+
     this.#formController = new WorkoutFormController({
       containerEl: workoutsEl,
+      units: this.#units,
       onSubmit: this.#handleFormSubmit.bind(this),
       onValidationError: (msg) => this.#errorBanner.show(msg),
     });
@@ -154,8 +164,25 @@ export class App {
     this.#persist();
   }
 
+  static UNITS_KEY = 'units';
+
+  static #loadUnits() {
+    try {
+      const stored = localStorage.getItem(App.UNITS_KEY);
+      return stored in UNIT_SYSTEMS ? stored : DEFAULT_UNITS;
+    } catch {
+      return DEFAULT_UNITS;
+    }
+  }
+
   #initViewControls() {
     this.#controlsEl = document.querySelector('.workout-controls');
+
+    const unitsEl = document.querySelector('[data-control="units"]');
+    if (unitsEl) {
+      unitsEl.value = this.#units;
+      unitsEl.addEventListener('change', (e) => this.#setUnits(e.target.value));
+    }
 
     document
       .querySelector('[data-control="filter"]')
@@ -179,6 +206,103 @@ export class App {
       .querySelector('[data-action="fit"]')
       ?.addEventListener('click', () => this.#mapService.fitToWorkouts());
     this.#clearBtnEl?.addEventListener('click', () => this.#handleClearAll());
+
+    document
+      .querySelector('[data-action="export"]')
+      ?.addEventListener('click', () => this.#exportWorkouts());
+
+    const importInputEl = document.querySelector('#workout-import');
+    document
+      .querySelector('[data-action="import"]')
+      ?.addEventListener('click', () => importInputEl?.click());
+    importInputEl?.addEventListener('change', (e) =>
+      this.#importFromFile(e.target)
+    );
+  }
+
+  #exportWorkouts() {
+    if (this.#workouts.length === 0) {
+      this.#errorBanner.show('There are no workouts to export yet.');
+      return;
+    }
+
+    const blob = new Blob([serializeWorkouts(this.#workouts)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = exportFilename();
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async #importFromFile(inputEl) {
+    const file = inputEl.files?.[0];
+    if (!file) return;
+    // Reset first, so re-picking the same file still fires a change event.
+    inputEl.value = '';
+
+    let text;
+    try {
+      text = await file.text();
+    } catch {
+      this.#errorBanner.show('That file could not be read.');
+      return;
+    }
+
+    this.#importWorkouts(text);
+  }
+
+  /**
+   * Imports are additive and keyed by id: restoring a backup into an empty app
+   * reproduces it exactly, and importing the same file twice is a no-op rather
+   * than a duplicate. Nothing is ever deleted by an import.
+   */
+  #importWorkouts(text) {
+    const { workouts, skipped, error } = parseWorkouts(text);
+    if (error) {
+      this.#errorBanner.show(error);
+      return;
+    }
+
+    const known = new Set(this.#workouts.map((workout) => workout.id));
+    const added = workouts.filter((workout) => !known.has(workout.id));
+
+    added.forEach((workout) => {
+      this.#workouts.push(workout);
+      this.#mapService.renderMarker(workout);
+    });
+
+    this.#refreshSidebar();
+    if (added.length > 0) this.#persist();
+
+    this.#errorBanner.show(
+      App.#importSummary(added.length, workouts.length, skipped)
+    );
+  }
+
+  static #importSummary(added, valid, skipped) {
+    if (added === 0 && valid === 0 && skipped === 0) {
+      return 'That export contained no workouts.';
+    }
+
+    const parts = [`Imported ${added} workout${added === 1 ? '' : 's'}`];
+    const duplicates = valid - added;
+    if (duplicates > 0) parts.push(`${duplicates} already present`);
+    if (skipped > 0) parts.push(`${skipped} unreadable`);
+    return `${parts.join(', ')}.`;
+  }
+
+  #setUnits(unitsKey) {
+    this.#units = unitsKey in UNIT_SYSTEMS ? unitsKey : DEFAULT_UNITS;
+    this.#formController.setUnits(this.#units);
+    try {
+      localStorage.setItem(App.UNITS_KEY, this.#units);
+    } catch {
+      // A rejected preference write is not worth interrupting the user for.
+    }
+    this.#refreshSidebar();
   }
 
   // Single re-render path: the list, the markers on the map, the summary and
@@ -191,9 +315,10 @@ export class App {
 
     this.#renderer.renderAll(visible, {
       emptyMessage: this.#emptyMessage(),
+      units: this.#units,
     });
     this.#mapService.showOnlyMarkers(visible.map((workout) => workout.id));
-    this.#summary.render(visible);
+    this.#summary.render(visible, this.#units);
 
     const isEmpty = this.#workouts.length === 0;
     if (this.#actionsEl) this.#actionsEl.hidden = isEmpty;
@@ -319,6 +444,7 @@ export class App {
   reset() {
     localStorage.removeItem('workouts');
     localStorage.removeItem('lastPosition');
+    localStorage.removeItem(App.UNITS_KEY);
     location.reload();
   }
 }

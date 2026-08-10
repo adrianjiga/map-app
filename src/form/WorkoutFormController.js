@@ -1,4 +1,5 @@
 import { VALIDATORS } from '../validation/validators.js';
+import { unitSystem, formatNumber } from '../units/units.js';
 
 export class WorkoutFormController {
   static ANIMATION_DURATION_MS = 1000;
@@ -14,10 +15,13 @@ export class WorkoutFormController {
   #inputElevation;
   #coords;
   #editingId = null;
+  #prefill = null;
+  #units;
   #onSubmit;
   #onValidationError;
 
-  constructor({ containerEl, onSubmit, onValidationError }) {
+  constructor({ containerEl, onSubmit, onValidationError, units }) {
+    this.#units = units;
     this.#formEl = containerEl.querySelector('.form');
     this.#submitEl = containerEl.querySelector('.form__btn');
     this.#inputType = containerEl.querySelector('.form__input--type');
@@ -31,12 +35,31 @@ export class WorkoutFormController {
     this.#formEl.addEventListener('submit', this.#handleSubmit.bind(this));
     this.#inputType.addEventListener('change', () => this.#syncTypeFields());
     this.#syncTypeFields();
+    this.#syncUnitLabels();
+  }
+
+  /**
+   * The form reads and writes in the user's chosen units; everything that
+   * leaves it is converted back to the canonical km/m before it reaches a
+   * workout. Storage is never touched by a unit change.
+   */
+  setUnits(unitsKey) {
+    this.#units = unitsKey;
+    this.#syncUnitLabels();
+  }
+
+  #syncUnitLabels() {
+    const system = unitSystem(this.#units);
+    this.#inputDistance.placeholder = system.distanceUnit;
+    this.#inputElevation.placeholder =
+      system.elevationUnit === 'ft' ? 'feet' : 'meters';
   }
 
   show(mapEvent) {
     const { lat, lng } = mapEvent.latlng;
     this.#coords = [lat, lng];
     this.#editingId = null;
+    this.#prefill = null;
     this.#clearInputs();
     this.#setLabel(WorkoutFormController.ADD_LABEL);
     this.#reveal();
@@ -53,10 +76,28 @@ export class WorkoutFormController {
 
     this.#inputType.value = workout.type;
     this.#syncTypeFields();
-    this.#inputDistance.value = workout.distance;
+    const system = unitSystem(this.#units);
+    const distanceDisplay = formatNumber(
+      system.distanceFromKm(workout.distance),
+      2
+    );
+    const elevationDisplay =
+      workout.elevation === undefined
+        ? ''
+        : formatNumber(system.elevationFromMetres(workout.elevation), 0);
+
+    this.#inputDistance.value = distanceDisplay;
     this.#inputDuration.value = workout.duration;
     this.#inputCadence.value = workout.cadence ?? '';
-    this.#inputElevation.value = workout.elevation ?? '';
+    this.#inputElevation.value = elevationDisplay;
+
+    // Converting a rounded display value back to canonical units loses
+    // precision: 10km shows as 6.21mi, which converts back to 9.994km. Remember
+    // what was displayed so an untouched field returns its exact original.
+    this.#prefill = {
+      distance: { display: distanceDisplay, canonical: workout.distance },
+      elevation: { display: elevationDisplay, canonical: workout.elevation },
+    };
 
     this.#setLabel(WorkoutFormController.EDIT_LABEL);
     this.#reveal();
@@ -69,6 +110,7 @@ export class WorkoutFormController {
   hide() {
     this.#clearInputs();
     this.#editingId = null;
+    this.#prefill = null;
     this.#setLabel(WorkoutFormController.ADD_LABEL);
 
     this.#formEl.style.display = 'none';
@@ -116,15 +158,32 @@ export class WorkoutFormController {
   }
 
   #readFormData() {
+    const system = unitSystem(this.#units);
     return {
       type: this.#inputType.value,
-      distance: +this.#inputDistance.value,
+      distance: this.#canonical('distance', this.#inputDistance, (value) =>
+        system.distanceToKm(value)
+      ),
       duration: +this.#inputDuration.value,
       cadence: +this.#inputCadence.value,
-      elevation: +this.#inputElevation.value,
+      elevation: this.#canonical('elevation', this.#inputElevation, (value) =>
+        system.elevationToMetres(value)
+      ),
       coords: this.#coords,
       editingId: this.#editingId,
     };
+  }
+
+  #canonical(field, inputEl, convert) {
+    const kept = this.#prefill?.[field];
+    if (
+      kept &&
+      kept.display === inputEl.value &&
+      kept.canonical !== undefined
+    ) {
+      return kept.canonical;
+    }
+    return convert(+inputEl.value);
   }
 
   #handleSubmit(e) {
