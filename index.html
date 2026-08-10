@@ -13,9 +13,16 @@
     <title>Workout Map</title>
   </head>
   <body>
-    <button class="mobile-menu-btn" aria-label="Open sidebar">&#9776;</button>
+    <button
+      class="mobile-menu-btn"
+      aria-label="Open sidebar"
+      aria-controls="sidebar"
+      aria-expanded="false"
+    >
+      &#9776;
+    </button>
 
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
       <div class="sidebar__header">
         <img src="logo.png" alt="Logo" class="logo" />
         <button class="sidebar__close-btn" aria-label="Close sidebar">
@@ -24,41 +31,74 @@
       </div>
 
       <ul class="workouts">
-        <form class="form hidden">
-          <div class="form__row">
-            <label class="form__label">Type</label>
-            <select class="form__input form__input--type">
-              <option value="running">Running</option>
-              <option value="cycling">Cycling</option>
-            </select>
-          </div>
-          <div class="form__row">
-            <label class="form__label">Distance</label>
-            <input class="form__input form__input--distance" placeholder="km" />
-          </div>
-          <div class="form__row">
-            <label class="form__label">Duration</label>
-            <input
-              class="form__input form__input--duration"
-              placeholder="min"
-            />
-          </div>
-          <div class="form__row form__row--hidden">
-            <label class="form__label">Elevation Gain</label>
-            <input
-              class="form__input form__input--elevation"
-              placeholder="meters"
-            />
-          </div>
-          <div class="form__row">
-            <label class="form__label">Cadence</label>
-            <input
-              class="form__input form__input--cadence"
-              placeholder="step/min"
-            />
-          </div>
-          <button class="form__btn">OK</button>
-        </form>
+        <li class="form__item">
+          <form class="form hidden" aria-label="Add workout">
+            <div class="form__row">
+              <label class="form__label" for="workout-type">Type</label>
+              <select
+                class="form__input form__input--type"
+                id="workout-type"
+                name="type"
+              >
+                <option value="running">Running</option>
+                <option value="cycling">Cycling</option>
+              </select>
+            </div>
+            <div class="form__row">
+              <label class="form__label" for="workout-distance">Distance</label>
+              <input
+                class="form__input form__input--distance"
+                id="workout-distance"
+                name="distance"
+                type="number"
+                inputmode="decimal"
+                step="any"
+                placeholder="km"
+              />
+            </div>
+            <div class="form__row">
+              <label class="form__label" for="workout-duration">Duration</label>
+              <input
+                class="form__input form__input--duration"
+                id="workout-duration"
+                name="duration"
+                type="number"
+                inputmode="decimal"
+                step="any"
+                placeholder="min"
+              />
+            </div>
+            <div class="form__row form__row--hidden">
+              <label class="form__label" for="workout-elevation">
+                Elevation Gain
+              </label>
+              <input
+                class="form__input form__input--elevation"
+                id="workout-elevation"
+                name="elevation"
+                type="number"
+                inputmode="decimal"
+                step="any"
+                placeholder="meters"
+              />
+            </div>
+            <div class="form__row">
+              <label class="form__label" for="workout-cadence">Cadence</label>
+              <input
+                class="form__input form__input--cadence"
+                id="workout-cadence"
+                name="cadence"
+                type="number"
+                inputmode="decimal"
+                step="any"
+                placeholder="step/min"
+              />
+            </div>
+            <div class="form__row form__row--actions">
+              <button class="form__btn" type="submit">Add workout</button>
+            </div>
+          </form>
+        </li>
       </ul>
 
       <p class="sidebar__copyright">

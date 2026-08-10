@@ -15,6 +15,8 @@
 
   /* Interactive */
   --accent-ui: #6366f1;
+  /* White text on --accent-ui is only 4.46:1; this shade clears WCAG AA. */
+  --accent-ui-strong: #4f46e5;
   --color-error: #ef4444;
 
   /* Borders & surfaces */
@@ -131,7 +133,7 @@ a:visited {
 .error-banner {
   background: linear-gradient(135deg, #ef4444, #b91c1c);
   color: #fff;
-  padding: 1rem 1.5rem 1rem 3.5rem;
+  padding: 1rem 3.5rem 1rem 3.5rem;
   border-radius: 8px;
   margin-bottom: 1.5rem;
   font-size: 1.4rem;
@@ -147,6 +149,39 @@ a:visited {
   left: 1.2rem;
   top: 50%;
   transform: translateY(-50%);
+}
+
+.error-banner__message {
+  display: block;
+}
+
+.error-banner__dismiss {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 1.3rem;
+  color: #fff;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.error-banner__dismiss:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.error-banner__dismiss:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
 }
 
 .error-banner--hidden {
@@ -204,6 +239,24 @@ a:visited {
   transform: translateY(-2px);
 }
 
+.workout__select {
+  display: block;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.workout__select:focus-visible {
+  outline: 2px solid var(--accent-ui);
+  outline-offset: 3px;
+}
+
 .workout--running {
   border-left: 5px solid var(--color-running);
   box-shadow: var(--shadow-glow-running);
@@ -234,6 +287,7 @@ a:visited {
 }
 
 .workout__title {
+  display: block;
   font-family: 'Oxanium', sans-serif;
   font-size: 1.6rem;
   font-weight: 600;
@@ -241,6 +295,7 @@ a:visited {
 }
 
 .workout__type-badge {
+  display: block;
   font-size: 2rem;
   line-height: 1;
 }
@@ -258,12 +313,14 @@ a:visited {
 }
 
 .workout__icon {
+  display: block;
   font-size: 1.6rem;
   margin-right: 0.2rem;
   height: 0.28rem;
 }
 
 .workout__value {
+  display: block;
   font-family: 'Oxanium', sans-serif;
   font-size: 1.8rem;
   font-weight: 700;
@@ -271,6 +328,7 @@ a:visited {
 }
 
 .workout__unit {
+  display: block;
   font-size: 1.1rem;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -279,6 +337,10 @@ a:visited {
 }
 
 /* FORM */
+.form__item {
+  display: block;
+}
+
 .form {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);
@@ -336,8 +398,12 @@ a:visited {
   transition: all 0.2s;
 }
 
+.form__input:focus-visible {
+  outline: 2px solid var(--accent-ui);
+  outline-offset: 2px;
+}
+
 .form__input:focus {
-  outline: none;
   border-bottom-color: var(--accent-ui);
   box-shadow: 0 2px 0 0 rgba(99, 102, 241, 0.3);
 }
@@ -347,8 +413,39 @@ a:visited {
   color: var(--text-primary);
 }
 
+.form__row--actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
 .form__btn {
-  display: none;
+  font-family: 'Oxanium', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background-color: var(--accent-ui-strong);
+  border: none;
+  border-radius: 6px;
+  padding: 0.7rem 1.8rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.form__btn:hover {
+  background-color: #4338ca;
+}
+
+.form__btn:active {
+  transform: translateY(1px);
+}
+
+.form.hidden .form__btn {
+  visibility: hidden;
 }
 
 /* SIDEBAR FOOTER */
@@ -498,5 +595,27 @@ a:visited {
   /* Reduce logo size slightly */
   .logo {
     height: 4.4rem;
+  }
+}
+
+/* ===================== REDUCED MOTION ===================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .form,
+  .form.hidden {
+    transition: none;
+    transform: none;
+  }
+
+  .workout:hover {
+    transform: none;
   }
 }

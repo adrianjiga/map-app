@@ -43,13 +43,13 @@ src/
   form/
     WorkoutFormController.js  Form show/hide/validate; fires onSubmit({type,...,coords})
   renderer/
-    WorkoutRenderer.js        Sidebar HTML via getSpecificFields(); event delegation
+    WorkoutRenderer.js        Builds cards as DOM nodes (never innerHTML); event delegation
   storage/
     WorkoutStorage.js         save()/load() with prototype-restoring hydration
   validation/
     validators.js             validateRunning, validateCycling, VALIDATORS map
   ui/
-    ErrorBanner.js            show(message)/hide() with auto-dismiss; no alert()
+    ErrorBanner.js            role=alert live region + dismiss button; no alert()
   style.css
   __tests__/                  8 test files + setup.js (104 tests)
 e2e/                          Playwright smoke suite against the production build
@@ -75,6 +75,18 @@ e2e/                          Playwright smoke suite against the production buil
 - **No `alert()`** — all errors go through `ErrorBanner.show()` with 4s auto-dismiss.
 - **`app.reset()`** — exposed on `window.app`; call from the browser console to wipe localStorage and reload.
 - **`WorkoutFormController.ANIMATION_DURATION_MS = 1000`** — named constant for the form hide `setTimeout`.
+
+### Accessibility Invariants
+
+Guarded by `e2e/a11y.spec.js`, which fails on any serious or critical axe violation.
+
+- **Cards are real `<button>`s** — `.workout__select` wraps the card contents, so keyboard operability, focus and Enter/Space come from the platform. A button only allows phrasing content, so the card uses `<span>`s with CSS `display` rather than `<div>`/`<h2>`.
+- **Cards are built as DOM nodes** — `WorkoutRenderer` uses `createElement` + `textContent`. Values come from `localStorage`, so string-interpolated HTML would make any future free-text field a stored-XSS vector.
+- **Every form control has a `for`/`id` pair and a `name`**, and numeric fields use `type="number"` + `inputmode="decimal"`. No `min` — `VALIDATORS` owns all validation so error messaging stays in `ErrorBanner` rather than splitting between it and native tooltips.
+- **Decorative emoji carry `aria-hidden="true"`** — `.workout__icon` and `.workout__type-badge`.
+- **The mobile sidebar is a modal overlay** — opening traps Tab, sets `aria-expanded`, marks `#map` `inert`, and moves focus to the close button; closing restores focus to the hamburger. Escape closes.
+- **`--accent-ui-strong`** exists because white on `--accent-ui` is only 4.46:1. Use it for any solid button with white text.
+- **Reduced motion** — a `prefers-reduced-motion` block neutralises animations, and `MapService.prefersReducedMotion()` drops the pan animation.
 
 ### CSS Tokens
 
