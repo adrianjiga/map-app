@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-const MAP_CLICK = { position: { x: 640, y: 400 } };
-
 async function addWorkout(page, { x, y, distance, duration, cadence }) {
   await page.locator('#map').click({ position: { x, y } });
   await page.locator('.form__input--distance').fill(distance);
