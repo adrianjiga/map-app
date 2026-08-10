@@ -5,6 +5,11 @@ import { WorkoutStorage } from './storage/WorkoutStorage.js';
 import { ErrorBanner } from './ui/ErrorBanner.js';
 import { WorkoutSummary } from './ui/WorkoutSummary.js';
 import { WORKOUT_REGISTRY } from './workouts/index.js';
+import {
+  selectWorkouts,
+  DEFAULT_SORT,
+  DEFAULT_FILTER,
+} from './workouts/ordering.js';
 
 export class App {
   // How long the "Clear all" button stays armed before reverting.
@@ -18,8 +23,11 @@ export class App {
   #summary;
   #sidebarEl;
   #actionsEl;
+  #controlsEl;
   #clearBtnEl;
   #clearConfirmTimer;
+  #sort = DEFAULT_SORT;
+  #filter = DEFAULT_FILTER;
   #menuBtnEl;
   #closeBtnEl;
   #mapEl;
@@ -55,10 +63,10 @@ export class App {
     });
 
     this.#initMobileNav();
+    this.#initViewControls();
     this.#initSidebarActions();
 
     this.#workouts = WorkoutStorage.load();
-    this.#renderer.renderAll(this.#workouts);
     this.#refreshSidebar();
 
     // Cards render before geolocation resolves; keep them inert until there is
@@ -94,7 +102,6 @@ export class App {
 
     this.#workouts.push(workout);
     this.#mapService.renderMarker(workout);
-    this.#renderer.render(workout);
     this.#refreshSidebar();
 
     this.#persist(
@@ -127,7 +134,6 @@ export class App {
     this.#workouts[index] = replacement;
     this.#mapService.removeMarker(workoutId);
     this.#mapService.renderMarker(replacement);
-    this.#renderer.replace(workoutId, replacement);
     this.#refreshSidebar();
     this.#persist();
   }
@@ -144,9 +150,25 @@ export class App {
 
     this.#workouts.splice(index, 1);
     this.#mapService.removeMarker(workoutId);
-    this.#renderer.remove(workoutId);
     this.#refreshSidebar();
     this.#persist();
+  }
+
+  #initViewControls() {
+    this.#controlsEl = document.querySelector('.workout-controls');
+
+    document
+      .querySelector('[data-control="filter"]')
+      ?.addEventListener('change', (e) => {
+        this.#filter = e.target.value;
+        this.#refreshSidebar();
+      });
+    document
+      .querySelector('[data-control="sort"]')
+      ?.addEventListener('change', (e) => {
+        this.#sort = e.target.value;
+        this.#refreshSidebar();
+      });
   }
 
   #initSidebarActions() {
@@ -159,10 +181,31 @@ export class App {
     this.#clearBtnEl?.addEventListener('click', () => this.#handleClearAll());
   }
 
+  // Single re-render path: the list, the markers on the map, the summary and
+  // the control visibility all derive from the same filtered/sorted selection.
   #refreshSidebar() {
-    this.#summary.render(this.#workouts);
-    if (this.#actionsEl) this.#actionsEl.hidden = this.#workouts.length === 0;
+    const visible = selectWorkouts(this.#workouts, {
+      sort: this.#sort,
+      filter: this.#filter,
+    });
+
+    this.#renderer.renderAll(visible, {
+      emptyMessage: this.#emptyMessage(),
+    });
+    this.#mapService.showOnlyMarkers(visible.map((workout) => workout.id));
+    this.#summary.render(visible);
+
+    const isEmpty = this.#workouts.length === 0;
+    if (this.#actionsEl) this.#actionsEl.hidden = isEmpty;
+    if (this.#controlsEl) this.#controlsEl.hidden = isEmpty;
     if (this.#clearConfirmTimer) this.#disarmClear();
+  }
+
+  #emptyMessage() {
+    if (this.#workouts.length === 0) return undefined;
+    return this.#filter === DEFAULT_FILTER
+      ? undefined
+      : `No ${this.#filter} workouts yet. Change the filter to see the others.`;
   }
 
   // A two-step button rather than confirm(): native dialogs are banned here,
@@ -197,7 +240,6 @@ export class App {
   #clearAllWorkouts() {
     this.#workouts = [];
     this.#mapService.removeAllMarkers();
-    this.#renderer.clear();
     this.#refreshSidebar();
     this.#persist();
   }

@@ -37,6 +37,7 @@ src/
     Running.js                calcPace(), getSpecificFields(), static emoji/popupClass
     Cycling.js                calcSpeed(), getSpecificFields(), static emoji/popupClass
     index.js                  Re-exports classes + WORKOUT_REGISTRY (type -> class)
+    ordering.js               SORTERS + selectWorkouts(): pure filter/sort, no DOM
   map/
     MapService.js             Wraps Leaflet: init() Promise, renderMarker(), moveToWorkout()
                               Marker registry by workout id: removeMarker(), fitToWorkouts()
@@ -87,6 +88,9 @@ e2e/
 - **Marker registry** — `MapService` keeps `id -> L.Marker` so markers can be removed individually or fitted in bulk. All Leaflet state stays inside `MapService`; no other module knows Leaflet exists.
 - **Destructive actions are two-step, not `confirm()`** — "Clear all" arms for `App.CLEAR_CONFIRM_MS` and clears on a second click. Native dialogs are banned by `no-alert`, and a real modal would need its own focus management.
 - **`[hidden] { display: none !important }`** — any class setting `display` outranks the UA's `[hidden]` rule, so elements toggled via the attribute would otherwise stay visible.
+- **One re-render path** — every list mutation and every view change goes through `App.#refreshSidebar()`, which derives the visible set with `selectWorkouts()` and drives the list, the markers, the summary and the control visibility from it. Targeted `renderer.render/replace/remove` calls were removed from the mutation paths: with sorting active, an insert-at-top shortcut silently ignores the chosen order.
+- **Filtering hides markers, it does not destroy them** — `MapService.showOnlyMarkers()` detaches and re-attaches layers, so popups and bindings survive a round trip through a filter. `fitToWorkouts()` only considers currently attached markers.
+- **The summary reflects the filter** — totals describe what is on screen, not the whole store, so a filtered view does not report numbers the user cannot see.
 - **Editing rebuilds rather than mutates** — `App.#applyEdit` constructs a fresh instance via the registry and carries the original `id` and `date` across. That is what makes changing a workout's type work: `pace`/`speed`, the emoji and the popup class come from the class, not from the object's current fields. The marker is removed and re-rendered for the same reason.
 - **Form field visibility is set, not toggled** — `#syncTypeFields()` derives row visibility from the current type, and runs on construction as well as on change. Toggling desynced whenever the type changed without a `change` event: a browser restoring the select on soft reload, or `showForEdit()` populating it in code.
 - **`WorkoutFormController.ANIMATION_DURATION_MS = 1000`** — named constant for the form hide `setTimeout`.

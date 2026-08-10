@@ -154,6 +154,57 @@ body {
   color: var(--text-secondary);
 }
 
+/* VIEW CONTROLS */
+.workout-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.workout-controls__field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.workout-controls__label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.workout-controls__select {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+}
+
+.workout-controls__select:hover {
+  border-color: var(--text-muted);
+}
+
+.workout-controls__select:focus-visible {
+  outline: 2px solid var(--accent-ui);
+  outline-offset: 2px;
+}
+
+.workout-controls__select option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
 /* SIDEBAR ACTIONS */
 .sidebar__actions {
   display: flex;
@@ -747,6 +798,12 @@ body {
   .workouts {
     height: auto;
     flex: 1;
+  }
+
+  /* View controls stack so the labels do not squeeze the selects */
+  .workout-controls {
+    flex-direction: column;
+    gap: 0.8rem;
   }
 
   /* Form: single column */
