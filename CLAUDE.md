@@ -95,6 +95,14 @@ Guarded by `e2e/a11y.spec.js`, which fails on any serious or critical axe violat
 - **`--text-secondary` is `#7c8aa0`**, not the original `#64748b`, which was 3.76:1 on `--bg-card`.
 - **Reduced motion** — a `prefers-reduced-motion` block neutralises animations, and `MapService.prefersReducedMotion()` drops the pan animation.
 
+### Performance & Asset Decisions
+
+- **Fonts are self-hosted** via `@fontsource-variable/*`, imported in `src/main.js`. The Google Fonts stylesheet was a render-blocking third-party request. Family names are `'Oxanium Variable'` and `'Plus Jakarta Sans Variable'` — the non-variable names do not resolve.
+- **`--card-index`** is set per card by `WorkoutRenderer` and consumed by the `animation-delay` in `.workout`, so the stagger continues past the eighth card. Capped at 400ms.
+- **Cached geolocation expires** after `MapService.CACHE_TTL_MS` (24h). Legacy `[lat, lng]` entries written before the timestamp existed are still accepted once, then rewritten in `{ coords, savedAt }` shape.
+- **Dates follow `document.documentElement.lang`** via `Workout.locale()`, not `navigator.language` — the UI copy is English-only, so localising just the dates contradicted the declaration.
+- **`.logo` sets `width: auto`** alongside the intrinsic `width`/`height` attributes; without it the attribute width wins and the image stretches.
+
 ### CSS Tokens
 
 - `--color-running: #00e887` — running sidebar border + popup
