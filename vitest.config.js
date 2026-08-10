@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/__tests__/setup.js'],
+    exclude: ['node_modules/**', 'e2e/**'],
     coverage: {
       // Without `all`, coverage only counts files a test happens to import,
       // which hides untested modules behind a flattering percentage.
