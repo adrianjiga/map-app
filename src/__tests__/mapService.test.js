@@ -248,6 +248,34 @@ describe('MapService', () => {
       expect(typeof stored.savedAt).toBe('number');
     });
 
+    it('stores the cached position coarsened to ~1km', async () => {
+      localStorage.clear();
+      navigator.geolocation.getCurrentPosition.mockImplementation((success) =>
+        success({ coords: { latitude: 51.5074321, longitude: -0.1277653 } })
+      );
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      const stored = JSON.parse(localStorage.getItem(cacheKey));
+      expect(stored.coords).toEqual([51.51, -0.13]);
+    });
+
+    it('still centres the map on the precise position for this visit', async () => {
+      localStorage.clear();
+      navigator.geolocation.getCurrentPosition.mockImplementation((success) =>
+        success({ coords: { latitude: 51.5074321, longitude: -0.1277653 } })
+      );
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      expect(L.map.mock.results.at(-1).value.setView).toHaveBeenCalledWith(
+        [51.5074321, -0.1277653],
+        expect.any(Number)
+      );
+    });
+
     it('ignores a malformed cache entry', async () => {
       localStorage.setItem(cacheKey, '{"coords":"nope"}');
 

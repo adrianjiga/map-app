@@ -99,7 +99,7 @@ Guarded by `e2e/a11y.spec.js`, which fails on any serious or critical axe violat
 
 - **Fonts are self-hosted** via `@fontsource-variable/*`, imported in `src/main.js`. The Google Fonts stylesheet was a render-blocking third-party request. Family names are `'Oxanium Variable'` and `'Plus Jakarta Sans Variable'` — the non-variable names do not resolve.
 - **`--card-index`** is set per card by `WorkoutRenderer` and consumed by the `animation-delay` in `.workout`, so the stagger continues past the eighth card. Capped at 400ms.
-- **Cached geolocation expires** after `MapService.CACHE_TTL_MS` (24h). Legacy `[lat, lng]` entries written before the timestamp existed are still accepted once, then rewritten in `{ coords, savedAt }` shape.
+- **Cached geolocation expires** after `MapService.CACHE_TTL_MS` (24h) and is stored coarsened to `MapService.CACHE_PRECISION` decimals (~1.1km) — it only seeds the initial zoom-13 view, so a precise home address never reaches localStorage. Workout coordinates keep full precision because their markers need it. Legacy `[lat, lng]` entries written before the timestamp existed are still accepted once, then rewritten in `{ coords, savedAt }` shape.
 - **Dates follow `document.documentElement.lang`** via `Workout.locale()`, not `navigator.language` — the UI copy is English-only, so localising just the dates contradicted the declaration.
 - **`.logo` sets `width: auto`** alongside the intrinsic `width`/`height` attributes; without it the attribute width wins and the image stretches.
 

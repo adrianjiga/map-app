@@ -18,6 +18,12 @@ export class MapService {
   // day it is likely wrong for anyone who has travelled, so re-ask instead.
   static CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+  // The cache only seeds the initial map view at zoom 13, where a viewport
+  // spans several kilometres. Two decimals (~1.1km) is indistinguishable there
+  // and keeps a precise home address out of localStorage. Workout coordinates
+  // are stored at full precision because their markers need it.
+  static CACHE_PRECISION = 2;
+
   #map;
   #mapZoomLevel = 13;
   #onMapClick;
@@ -77,8 +83,15 @@ export class MapService {
     const { latitude, longitude } = position.coords;
     localStorage.setItem(
       this.#CACHED_COORDS_KEY,
-      JSON.stringify({ coords: [latitude, longitude], savedAt: Date.now() })
+      JSON.stringify({
+        coords: [MapService.#coarsen(latitude), MapService.#coarsen(longitude)],
+        savedAt: Date.now(),
+      })
     );
+  }
+
+  static #coarsen(degrees) {
+    return Number(degrees.toFixed(MapService.CACHE_PRECISION));
   }
 
   #readCachedPosition() {
