@@ -57,7 +57,9 @@
         </p>
         <p class="workout-summary__stat">
           <span class="workout-summary__value" data-summary="distance">0</span>
-          <span class="workout-summary__label">Total km</span>
+          <span class="workout-summary__label" data-summary-label="distance">
+            Total km
+          </span>
         </p>
         <p class="workout-summary__stat">
           <span class="workout-summary__value" data-summary="duration">0</span>
@@ -78,6 +80,19 @@
             <option value="all">All types</option>
             <option value="running">Running</option>
             <option value="cycling">Cycling</option>
+          </select>
+        </div>
+        <div class="workout-controls__field">
+          <label class="workout-controls__label" for="workout-units">
+            Units
+          </label>
+          <select
+            class="workout-controls__select"
+            id="workout-units"
+            data-control="units"
+          >
+            <option value="metric">Kilometres</option>
+            <option value="imperial">Miles</option>
           </select>
         </div>
         <div class="workout-controls__field">

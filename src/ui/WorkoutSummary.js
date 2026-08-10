@@ -1,18 +1,25 @@
+import { unitSystem, formatNumber } from '../units/units.js';
+
 export class WorkoutSummary {
   #el;
   #countEl;
   #distanceEl;
   #durationEl;
+  #distanceLabelEl;
 
   constructor({ containerEl }) {
     this.#el = containerEl;
     this.#countEl = containerEl?.querySelector('[data-summary="count"]');
     this.#distanceEl = containerEl?.querySelector('[data-summary="distance"]');
     this.#durationEl = containerEl?.querySelector('[data-summary="duration"]');
+    this.#distanceLabelEl = containerEl?.querySelector(
+      '[data-summary-label="distance"]'
+    );
   }
 
-  render(workouts) {
+  render(workouts, unitsKey) {
     if (!this.#el) return;
+    const system = unitSystem(unitsKey);
 
     this.#el.hidden = workouts.length === 0;
     if (workouts.length === 0) return;
@@ -27,9 +34,12 @@ export class WorkoutSummary {
 
     if (this.#countEl) this.#countEl.textContent = workouts.length;
     if (this.#distanceEl) {
-      this.#distanceEl.textContent = WorkoutSummary.formatDistance(
-        totals.distance
+      this.#distanceEl.textContent = formatNumber(
+        system.distanceFromKm(totals.distance)
       );
+    }
+    if (this.#distanceLabelEl) {
+      this.#distanceLabelEl.textContent = `Total ${system.distanceUnit}`;
     }
     if (this.#durationEl) {
       this.#durationEl.textContent = WorkoutSummary.formatDuration(

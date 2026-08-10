@@ -10,6 +10,7 @@ import {
   DEFAULT_SORT,
   DEFAULT_FILTER,
 } from './workouts/ordering.js';
+import { UNIT_SYSTEMS, DEFAULT_UNITS } from './units/units.js';
 
 export class App {
   // How long the "Clear all" button stays armed before reverting.
@@ -28,6 +29,7 @@ export class App {
   #clearConfirmTimer;
   #sort = DEFAULT_SORT;
   #filter = DEFAULT_FILTER;
+  #units = DEFAULT_UNITS;
   #menuBtnEl;
   #closeBtnEl;
   #mapEl;
@@ -45,8 +47,11 @@ export class App {
       onWorkoutEdit: this.#handleWorkoutEdit.bind(this),
     });
 
+    this.#units = App.#loadUnits();
+
     this.#formController = new WorkoutFormController({
       containerEl: workoutsEl,
+      units: this.#units,
       onSubmit: this.#handleFormSubmit.bind(this),
       onValidationError: (msg) => this.#errorBanner.show(msg),
     });
@@ -154,8 +159,25 @@ export class App {
     this.#persist();
   }
 
+  static UNITS_KEY = 'units';
+
+  static #loadUnits() {
+    try {
+      const stored = localStorage.getItem(App.UNITS_KEY);
+      return stored in UNIT_SYSTEMS ? stored : DEFAULT_UNITS;
+    } catch {
+      return DEFAULT_UNITS;
+    }
+  }
+
   #initViewControls() {
     this.#controlsEl = document.querySelector('.workout-controls');
+
+    const unitsEl = document.querySelector('[data-control="units"]');
+    if (unitsEl) {
+      unitsEl.value = this.#units;
+      unitsEl.addEventListener('change', (e) => this.#setUnits(e.target.value));
+    }
 
     document
       .querySelector('[data-control="filter"]')
@@ -181,6 +203,17 @@ export class App {
     this.#clearBtnEl?.addEventListener('click', () => this.#handleClearAll());
   }
 
+  #setUnits(unitsKey) {
+    this.#units = unitsKey in UNIT_SYSTEMS ? unitsKey : DEFAULT_UNITS;
+    this.#formController.setUnits(this.#units);
+    try {
+      localStorage.setItem(App.UNITS_KEY, this.#units);
+    } catch {
+      // A rejected preference write is not worth interrupting the user for.
+    }
+    this.#refreshSidebar();
+  }
+
   // Single re-render path: the list, the markers on the map, the summary and
   // the control visibility all derive from the same filtered/sorted selection.
   #refreshSidebar() {
@@ -191,9 +224,10 @@ export class App {
 
     this.#renderer.renderAll(visible, {
       emptyMessage: this.#emptyMessage(),
+      units: this.#units,
     });
     this.#mapService.showOnlyMarkers(visible.map((workout) => workout.id));
-    this.#summary.render(visible);
+    this.#summary.render(visible, this.#units);
 
     const isEmpty = this.#workouts.length === 0;
     if (this.#actionsEl) this.#actionsEl.hidden = isEmpty;
@@ -319,6 +353,7 @@ export class App {
   reset() {
     localStorage.removeItem('workouts');
     localStorage.removeItem('lastPosition');
+    localStorage.removeItem(App.UNITS_KEY);
     location.reload();
   }
 }
