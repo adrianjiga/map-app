@@ -17,6 +17,9 @@ describe('WorkoutRenderer', () => {
     formEl.className = 'form hidden';
     formItemEl.appendChild(formEl);
     containerEl.appendChild(formItemEl);
+    const emptyEl = document.createElement('li');
+    emptyEl.className = 'workouts__empty';
+    containerEl.appendChild(emptyEl);
     document.body.appendChild(containerEl);
     onWorkoutClick = vi.fn();
     onWorkoutDelete = vi.fn();
@@ -190,6 +193,31 @@ describe('WorkoutRenderer', () => {
 
     expect(containerEl.querySelectorAll('.workout')).toHaveLength(0);
     expect(containerEl.querySelector('.form')).not.toBeNull();
+  });
+
+  it('shows the empty state until a workout exists', () => {
+    const emptyEl = containerEl.querySelector('.workouts__empty');
+    renderer.renderAll([]);
+    expect(emptyEl.hidden).toBe(false);
+
+    renderer.render(new Running([0, 0], 5, 30, 160));
+    expect(emptyEl.hidden).toBe(true);
+  });
+
+  it('restores the empty state after the last workout is removed', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+    renderer.remove(r.id);
+    expect(containerEl.querySelector('.workouts__empty').hidden).toBe(false);
+  });
+
+  it('restores the empty state after clear', () => {
+    renderer.renderAll([
+      new Running([0, 0], 5, 30, 160),
+      new Cycling([1, 1], 20, 60, 500),
+    ]);
+    renderer.clear();
+    expect(containerEl.querySelector('.workouts__empty').hidden).toBe(false);
   });
 
   it('Running output does not contain km/h (no type-switching leak)', () => {

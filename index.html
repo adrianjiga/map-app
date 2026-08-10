@@ -30,6 +30,34 @@
         </button>
       </div>
 
+      <div class="workout-summary" hidden>
+        <p class="workout-summary__stat">
+          <span class="workout-summary__value" data-summary="count">0</span>
+          <span class="workout-summary__label">Workouts</span>
+        </p>
+        <p class="workout-summary__stat">
+          <span class="workout-summary__value" data-summary="distance">0</span>
+          <span class="workout-summary__label">Total km</span>
+        </p>
+        <p class="workout-summary__stat">
+          <span class="workout-summary__value" data-summary="duration">0</span>
+          <span class="workout-summary__label">Total time</span>
+        </p>
+      </div>
+
+      <div class="sidebar__actions" hidden>
+        <button class="sidebar__action" type="button" data-action="fit">
+          Fit to markers
+        </button>
+        <button
+          class="sidebar__action sidebar__action--danger"
+          type="button"
+          data-action="clear"
+        >
+          Clear all
+        </button>
+      </div>
+
       <ul class="workouts">
         <li class="form__item">
           <form class="form hidden" aria-label="Add workout">
@@ -98,6 +126,9 @@
               <button class="form__btn" type="submit">Add workout</button>
             </div>
           </form>
+        </li>
+        <li class="workouts__empty">
+          Click anywhere on the map to log your first workout.
         </li>
       </ul>
 

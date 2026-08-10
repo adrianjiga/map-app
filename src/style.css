@@ -18,6 +18,8 @@
   /* White text on --accent-ui is only 4.46:1; this shade clears WCAG AA. */
   --accent-ui-strong: #4f46e5;
   --color-error: #ef4444;
+  /* White on --color-error is 3.76:1; this shade clears WCAG AA. */
+  --color-error-strong: #b91c1c;
 
   /* Borders & surfaces */
   --border-subtle: rgba(255, 255, 255, 0.06);
@@ -94,9 +96,106 @@ a:visited {
 
 .workouts {
   list-style: none;
-  height: 77vh;
-  overflow-y: scroll;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* SUMMARY */
+.workout-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.4rem 1rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.workout-summary__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  text-align: center;
+}
+
+.workout-summary__value {
+  font-family: 'Oxanium', sans-serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.workout-summary__label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* SIDEBAR ACTIONS */
+.sidebar__actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.sidebar__action {
+  flex: 1;
+  font-family: 'Oxanium', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.sidebar__action:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--text-muted);
+}
+
+.sidebar__action:focus-visible {
+  outline: 2px solid var(--accent-ui);
+  outline-offset: 2px;
+}
+
+.sidebar__action--danger:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.sidebar__action--armed,
+.sidebar__action--armed:hover {
+  color: #fff;
+  background-color: var(--color-error-strong);
+  border-color: var(--color-error-strong);
+}
+
+/* EMPTY STATE */
+.workouts__empty {
+  padding: 2.5rem 2rem;
+  font-size: 1.4rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--text-secondary);
+  background-color: var(--bg-card);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 8px;
 }
 
 /* Sidebar cards exist before the map does; don't invite clicks that can't pan */

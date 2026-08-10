@@ -19,20 +19,31 @@ export class WorkoutRenderer {
     } else {
       this.#containerEl.append(itemEl);
     }
+
+    this.#syncEmptyState();
   }
 
   renderAll(workouts) {
     workouts.forEach((workout) => this.render(workout));
+    this.#syncEmptyState();
   }
 
   remove(workoutId) {
     this.#itemFor(workoutId)?.remove();
+    this.#syncEmptyState();
   }
 
   clear() {
     this.#containerEl
       .querySelectorAll('.workout')
       .forEach((itemEl) => itemEl.remove());
+    this.#syncEmptyState();
+  }
+
+  #syncEmptyState() {
+    const emptyEl = this.#containerEl.querySelector('.workouts__empty');
+    if (!emptyEl) return;
+    emptyEl.hidden = this.#containerEl.querySelector('.workout') !== null;
   }
 
   #itemFor(workoutId) {
