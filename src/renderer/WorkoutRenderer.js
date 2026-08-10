@@ -59,6 +59,10 @@ export class WorkoutRenderer {
     const itemEl = document.createElement('li');
     itemEl.className = `workout workout--${workout.type}`;
     itemEl.dataset.id = workout.id;
+    itemEl.style.setProperty(
+      '--card-index',
+      this.#containerEl.querySelectorAll('.workout').length
+    );
 
     // A real <button> carries keyboard operability, focus and Enter/Space for
     // free. Its content model is phrasing content only, hence spans throughout.

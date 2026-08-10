@@ -63,8 +63,10 @@ body {
 }
 
 /* GENERAL */
-a:link,
-a:visited {
+/* Scoped to the sidebar: unscoped, this recoloured Leaflet's own zoom controls
+   and the OpenStreetMap attribution link. */
+.sidebar a:link,
+.sidebar a:visited {
   color: var(--color-cycling);
 }
 
@@ -324,26 +326,11 @@ a:visited {
     box-shadow 0.2s ease;
 }
 
-.workout:nth-child(2) {
-  animation-delay: 0ms;
-}
-.workout:nth-child(3) {
-  animation-delay: 50ms;
-}
-.workout:nth-child(4) {
-  animation-delay: 100ms;
-}
-.workout:nth-child(5) {
-  animation-delay: 150ms;
-}
-.workout:nth-child(6) {
-  animation-delay: 200ms;
-}
-.workout:nth-child(7) {
-  animation-delay: 250ms;
-}
-.workout:nth-child(8) {
-  animation-delay: 300ms;
+/* Index set by WorkoutRenderer, so the stagger keeps working past the eighth
+   card instead of stopping at a hardcoded list. Capped so a long list does not
+   leave the last cards waiting seconds to appear. */
+.workout {
+  animation-delay: min(calc(var(--card-index, 0) * 50ms), 400ms);
 }
 
 .workout:hover {

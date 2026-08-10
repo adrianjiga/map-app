@@ -220,6 +220,22 @@ describe('WorkoutRenderer', () => {
     expect(containerEl.querySelector('.workouts__empty').hidden).toBe(false);
   });
 
+  it('staggers cards past the eighth without hardcoded rules', () => {
+    const workouts = Array.from(
+      { length: 10 },
+      () => new Running([0, 0], 5, 30, 160)
+    );
+    renderer.renderAll(workouts);
+
+    const indexes = [...containerEl.querySelectorAll('.workout')].map((el) =>
+      el.style.getPropertyValue('--card-index')
+    );
+    // renderAll inserts newest-first, so the last rendered carries index 9.
+    expect(indexes).toHaveLength(10);
+    expect(new Set(indexes).size).toBe(10);
+    expect(indexes).toContain('9');
+  });
+
   it('Running output does not contain km/h (no type-switching leak)', () => {
     const r = new Running([0, 0], 5, 30, 160);
     renderer.render(r);
