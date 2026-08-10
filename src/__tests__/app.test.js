@@ -77,12 +77,13 @@ const CYCLING_FORM_DATA = {
 
 function buildDom() {
   document.body.innerHTML = `
-    <button class="mobile-menu-btn"></button>
-    <div class="sidebar">
+    <button class="mobile-menu-btn" aria-controls="sidebar" aria-expanded="false"></button>
+    <div class="sidebar" id="sidebar">
       <button class="sidebar__close-btn"></button>
       <ul class="workouts">
-        <form class="form hidden"></form>
+        <li class="form__item"><form class="form hidden"></form></li>
       </ul>
+      <a class="sidebar__link" href="https://example.com">Author</a>
     </div>
     <div id="map"></div>
   `;
@@ -315,6 +316,97 @@ describe('App', () => {
       expect(
         document.querySelector('.sidebar').classList.contains('sidebar--open')
       ).toBe(false);
+    });
+
+    it('reflects open state on the hamburger button', () => {
+      new App();
+      const menuBtn = document.querySelector('.mobile-menu-btn');
+
+      menuBtn.click();
+      expect(menuBtn.getAttribute('aria-expanded')).toBe('true');
+
+      document.querySelector('.sidebar__close-btn').click();
+      expect(menuBtn.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('moves focus into the overlay on open and back on close', () => {
+      new App();
+      const menuBtn = document.querySelector('.mobile-menu-btn');
+
+      menuBtn.click();
+      expect(document.activeElement).toBe(
+        document.querySelector('.sidebar__close-btn')
+      );
+
+      document.querySelector('.sidebar__close-btn').click();
+      expect(document.activeElement).toBe(menuBtn);
+    });
+
+    it('makes the map inert while the overlay is open', () => {
+      new App();
+      const mapEl = document.querySelector('#map');
+
+      document.querySelector('.mobile-menu-btn').click();
+      expect(mapEl.hasAttribute('inert')).toBe(true);
+
+      document.querySelector('.sidebar__close-btn').click();
+      expect(mapEl.hasAttribute('inert')).toBe(false);
+    });
+
+    it('closes the overlay on Escape', () => {
+      new App();
+      const sidebar = document.querySelector('.sidebar');
+      document.querySelector('.mobile-menu-btn').click();
+
+      sidebar.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      );
+
+      expect(sidebar.classList.contains('sidebar--open')).toBe(false);
+    });
+
+    it('traps Tab inside the open overlay', () => {
+      new App();
+      const sidebar = document.querySelector('.sidebar');
+      document.querySelector('.mobile-menu-btn').click();
+
+      const focusable = Array.from(
+        sidebar.querySelectorAll('a[href], button:not([disabled])')
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      last.focus();
+      const forward = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        bubbles: true,
+        cancelable: true,
+      });
+      sidebar.dispatchEvent(forward);
+      expect(document.activeElement).toBe(first);
+      expect(forward.defaultPrevented).toBe(true);
+
+      const backward = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      sidebar.dispatchEvent(backward);
+      expect(document.activeElement).toBe(last);
+      expect(backward.defaultPrevented).toBe(true);
+    });
+
+    it('ignores Escape when the overlay is already closed', () => {
+      new App();
+      const sidebar = document.querySelector('.sidebar');
+
+      sidebar.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      );
+
+      expect(sidebar.classList.contains('sidebar--open')).toBe(false);
+      expect(document.querySelector('#map').hasAttribute('inert')).toBe(false);
     });
 
     it('closes the sidebar after selecting a workout on mobile', () => {

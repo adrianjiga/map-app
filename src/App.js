@@ -12,6 +12,9 @@ export class App {
   #renderer;
   #errorBanner;
   #sidebarEl;
+  #menuBtnEl;
+  #closeBtnEl;
+  #mapEl;
 
   constructor() {
     this.#sidebarEl = document.querySelector('.sidebar');
@@ -87,20 +90,68 @@ export class App {
   }
 
   #initMobileNav() {
-    document
-      .querySelector('.mobile-menu-btn')
-      ?.addEventListener('click', () => this.#openSidebar());
-    document
-      .querySelector('.sidebar__close-btn')
-      ?.addEventListener('click', () => this.#closeSidebar());
+    this.#menuBtnEl = document.querySelector('.mobile-menu-btn');
+    this.#closeBtnEl = document.querySelector('.sidebar__close-btn');
+    this.#mapEl = document.querySelector('#map');
+
+    this.#menuBtnEl?.addEventListener('click', () => this.#openSidebar());
+    this.#closeBtnEl?.addEventListener('click', () => this.#closeSidebar());
+    this.#sidebarEl.addEventListener('keydown', (e) =>
+      this.#handleSidebarKeydown(e)
+    );
+  }
+
+  get #isSidebarOpen() {
+    return this.#sidebarEl.classList.contains('sidebar--open');
   }
 
   #openSidebar() {
     this.#sidebarEl.classList.add('sidebar--open');
+    this.#menuBtnEl?.setAttribute('aria-expanded', 'true');
+    // The overlay covers the map, so hide it from assistive tech too.
+    this.#mapEl?.toggleAttribute('inert', true);
+    this.#closeBtnEl?.focus();
   }
 
   #closeSidebar() {
+    if (!this.#isSidebarOpen) return;
     this.#sidebarEl.classList.remove('sidebar--open');
+    this.#menuBtnEl?.setAttribute('aria-expanded', 'false');
+    this.#mapEl?.toggleAttribute('inert', false);
+    this.#menuBtnEl?.focus();
+  }
+
+  #handleSidebarKeydown(e) {
+    if (!this.#isSidebarOpen) return;
+
+    if (e.key === 'Escape') {
+      this.#closeSidebar();
+      return;
+    }
+
+    if (e.key !== 'Tab') return;
+
+    const focusable = this.#focusableElements();
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  #focusableElements() {
+    return Array.from(
+      this.#sidebarEl.querySelectorAll(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => !el.closest('.hidden, .error-banner--hidden'));
   }
 
   reset() {
