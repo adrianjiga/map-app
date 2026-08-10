@@ -3,8 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta
+      name="description"
+      content="Log running and cycling workouts on an interactive map. Click anywhere to record a session; everything is stored in your browser."
+    />
+    <meta name="theme-color" content="#0b0d11" />
     <link rel="shortcut icon" type="image/png" href="/icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Workout Map" />
+    <meta
+      property="og:description"
+      content="Log running and cycling workouts on an interactive map."
+    />
+    <meta property="og:url" content="https://adrianjiga.github.io/map-app/" />
+    <meta
+      property="og:image"
+      content="https://adrianjiga.github.io/map-app/logo.png"
+    />
+    <meta name="twitter:card" content="summary" />
+
     <script type="module" src="/src/main.js"></script>
     <title>Workout Map</title>
   </head>
@@ -20,7 +38,13 @@
 
     <div class="sidebar" id="sidebar">
       <div class="sidebar__header">
-        <img src="logo.png" alt="Logo" class="logo" />
+        <img
+          src="logo.png"
+          alt="Workout Map"
+          class="logo"
+          width="366"
+          height="150"
+        />
         <button class="sidebar__close-btn" aria-label="Close sidebar">
           &#10005;
         </button>
