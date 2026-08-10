@@ -45,7 +45,15 @@ function buildFormDOM() {
   cadInput.className = 'form__input form__input--cadence';
   cadRow.appendChild(cadInput);
 
-  formEl.append(typeRow, distRow, durRow, elevRow, cadRow);
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'form__row form__row--actions';
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'form__btn';
+  submitBtn.type = 'submit';
+  submitBtn.textContent = 'Add workout';
+  actionsRow.appendChild(submitBtn);
+
+  formEl.append(typeRow, distRow, durRow, elevRow, cadRow, actionsRow);
   workoutsEl.appendChild(formEl);
   return workoutsEl;
 }
@@ -128,6 +136,58 @@ describe('WorkoutFormController', () => {
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(onValidationError).toHaveBeenCalled();
+  });
+
+  it('switching to cycling shows elevation and hides cadence', () => {
+    const typeEl = containerEl.querySelector('.form__input--type');
+    typeEl.value = 'cycling';
+    typeEl.dispatchEvent(new Event('change'));
+
+    const rowOf = (sel) => containerEl.querySelector(sel).closest('.form__row');
+    expect(
+      rowOf('.form__input--elevation').classList.contains('form__row--hidden')
+    ).toBe(false);
+    expect(
+      rowOf('.form__input--cadence').classList.contains('form__row--hidden')
+    ).toBe(true);
+  });
+
+  it('switching back to running restores the cadence field', () => {
+    const typeEl = containerEl.querySelector('.form__input--type');
+    typeEl.value = 'cycling';
+    typeEl.dispatchEvent(new Event('change'));
+    typeEl.value = 'running';
+    typeEl.dispatchEvent(new Event('change'));
+
+    const rowOf = (sel) => containerEl.querySelector(sel).closest('.form__row');
+    expect(
+      rowOf('.form__input--cadence').classList.contains('form__row--hidden')
+    ).toBe(false);
+    expect(
+      rowOf('.form__input--elevation').classList.contains('form__row--hidden')
+    ).toBe(true);
+  });
+
+  it('corrects a desynced type on construction, without a change event', () => {
+    // A browser restoring the select value on soft reload fires no event.
+    const dom = buildFormDOM();
+    dom.querySelector('.form__input--type').value = 'cycling';
+    document.body.appendChild(dom);
+
+    new WorkoutFormController({
+      containerEl: dom,
+      onSubmit: vi.fn(),
+      onValidationError: vi.fn(),
+    });
+
+    const rowOf = (sel) => dom.querySelector(sel).closest('.form__row');
+    expect(
+      rowOf('.form__input--elevation').classList.contains('form__row--hidden')
+    ).toBe(false);
+    expect(
+      rowOf('.form__input--cadence').classList.contains('form__row--hidden')
+    ).toBe(true);
+    document.body.removeChild(dom);
   });
 
   it('negative elevation cycling is valid (downhill)', () => {
