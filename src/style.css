@@ -97,6 +97,12 @@ a:visited {
   overflow-x: hidden;
 }
 
+/* Sidebar cards exist before the map does; don't invite clicks that can't pan */
+.workouts--loading .workout {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 .workouts::-webkit-scrollbar {
   width: 4px;
 }

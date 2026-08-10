@@ -110,6 +110,13 @@ describe('MapService', () => {
     expect(L.map).toHaveBeenCalled();
   });
 
+  it('renderStoredMarkers calls renderMarker for each workout', () => {
+    const r1 = new Running([51.5, -0.09], 5, 30, 160);
+    const r2 = new Running([51.6, -0.1], 8, 45, 180);
+    service.renderStoredMarkers([r1, r2]);
+    expect(L.marker).toHaveBeenCalledTimes(2);
+  });
+
   it('points Leaflet at bundler-resolved marker icons', () => {
     expect(iconState.merged).toEqual(
       expect.objectContaining({
@@ -120,10 +127,39 @@ describe('MapService', () => {
     );
   });
 
-  it('renderStoredMarkers calls renderMarker for each workout', () => {
-    const r1 = new Running([51.5, -0.09], 5, 30, 160);
-    const r2 = new Running([51.6, -0.1], 8, 45, 180);
-    service.renderStoredMarkers([r1, r2]);
-    expect(L.marker).toHaveBeenCalledTimes(2);
+  it('isReady is false before init and true after', async () => {
+    localStorage.setItem('lastPosition', JSON.stringify([51.5, -0.09]));
+    const pending = new MapService({ onMapClick: vi.fn() });
+    expect(pending.isReady).toBe(false);
+    await pending.init();
+    expect(pending.isReady).toBe(true);
+  });
+
+  it('moveToWorkout before init does not throw and replays once ready', async () => {
+    localStorage.setItem('lastPosition', JSON.stringify([51.5, -0.09]));
+    const pending = new MapService({ onMapClick: vi.fn() });
+    const r = new Running([51.5, -0.09], 5, 30, 160);
+
+    expect(() => pending.moveToWorkout(r)).not.toThrow();
+
+    await pending.init();
+    const mapInstance = L.map.mock.results.at(-1).value;
+    expect(mapInstance.setView).toHaveBeenCalledWith(
+      r.coords,
+      expect.any(Number),
+      expect.any(Object)
+    );
+  });
+
+  it('renderMarker before init is queued until the map exists', async () => {
+    localStorage.setItem('lastPosition', JSON.stringify([51.5, -0.09]));
+    const pending = new MapService({ onMapClick: vi.fn() });
+    const r = new Running([51.5, -0.09], 5, 30, 160);
+
+    pending.renderMarker(r);
+    expect(L.marker).not.toHaveBeenCalled();
+
+    await pending.init();
+    expect(L.marker).toHaveBeenCalledWith(r.coords);
   });
 });

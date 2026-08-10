@@ -17,12 +17,17 @@ export class MapService {
   #map;
   #mapZoomLevel = 13;
   #onMapClick;
+  #pending = [];
 
   constructor({ onMapClick }) {
     this.#onMapClick = onMapClick;
   }
 
   #CACHED_COORDS_KEY = 'lastPosition';
+
+  get isReady() {
+    return Boolean(this.#map);
+  }
 
   init() {
     return new Promise((resolve, reject) => {
@@ -36,29 +41,31 @@ export class MapService {
         this.#initMap(JSON.parse(cached));
         resolve();
         // Refresh coords in background for next visit
-        navigator.geolocation.getCurrentPosition((position) => {
-          const { latitude, longitude } = position.coords;
-          localStorage.setItem(
-            this.#CACHED_COORDS_KEY,
-            JSON.stringify([latitude, longitude])
-          );
-        });
+        navigator.geolocation.getCurrentPosition(
+          (position) => this.#cachePosition(position),
+          () => {}
+        );
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          localStorage.setItem(
-            this.#CACHED_COORDS_KEY,
-            JSON.stringify([latitude, longitude])
-          );
+          this.#cachePosition(position);
           this.#initMap([latitude, longitude]);
           resolve();
         },
         () => reject(new Error('Could not get your position'))
       );
     });
+  }
+
+  #cachePosition(position) {
+    const { latitude, longitude } = position.coords;
+    localStorage.setItem(
+      this.#CACHED_COORDS_KEY,
+      JSON.stringify([latitude, longitude])
+    );
   }
 
   #initMap(coords) {
@@ -68,28 +75,46 @@ export class MapService {
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(this.#map);
     this.#map.on('click', (mapEvent) => this.#onMapClick(mapEvent));
+
+    const queued = this.#pending;
+    this.#pending = [];
+    queued.forEach((fn) => fn());
+  }
+
+  // The sidebar renders stored workouts before geolocation resolves, so calls
+  // can arrive while #map is still undefined. Queue them instead of throwing.
+  #whenReady(fn) {
+    if (this.#map) {
+      fn();
+      return;
+    }
+    this.#pending.push(fn);
   }
 
   renderMarker(workout) {
-    L.marker(workout.coords)
-      .addTo(this.#map)
-      .bindPopup(
-        L.popup({
-          maxWidth: 280,
-          minWidth: 100,
-          autoClose: false,
-          closeOnClick: false,
-          className: workout.constructor.popupClass,
-        })
-      )
-      .setPopupContent(`${workout.emoji} ${workout.description}`)
-      .openPopup();
+    this.#whenReady(() => {
+      L.marker(workout.coords)
+        .addTo(this.#map)
+        .bindPopup(
+          L.popup({
+            maxWidth: 280,
+            minWidth: 100,
+            autoClose: false,
+            closeOnClick: false,
+            className: workout.constructor.popupClass,
+          })
+        )
+        .setPopupContent(`${workout.emoji} ${workout.description}`)
+        .openPopup();
+    });
   }
 
   moveToWorkout(workout) {
-    this.#map.setView(workout.coords, this.#mapZoomLevel, {
-      animate: true,
-      pan: { duration: 1 },
+    this.#whenReady(() => {
+      this.#map.setView(workout.coords, this.#mapZoomLevel, {
+        animate: true,
+        pan: { duration: 1 },
+      });
     });
   }
 

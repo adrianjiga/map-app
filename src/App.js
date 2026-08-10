@@ -42,9 +42,14 @@ export class App {
     this.#workouts = WorkoutStorage.load();
     this.#renderer.renderAll(this.#workouts);
 
+    // Cards render before geolocation resolves; keep them inert until there is
+    // a map to pan.
+    workoutsEl.classList.add('workouts--loading');
+
     this.#mapService
       .init()
       .then(() => {
+        workoutsEl.classList.remove('workouts--loading');
         this.#mapService.renderStoredMarkers(this.#workouts);
       })
       .catch(() => {
