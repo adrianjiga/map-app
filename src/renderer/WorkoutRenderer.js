@@ -2,11 +2,13 @@ export class WorkoutRenderer {
   #containerEl;
   #onWorkoutClick;
   #onWorkoutDelete;
+  #onWorkoutEdit;
 
-  constructor({ containerEl, onWorkoutClick, onWorkoutDelete }) {
+  constructor({ containerEl, onWorkoutClick, onWorkoutDelete, onWorkoutEdit }) {
     this.#containerEl = containerEl;
     this.#onWorkoutClick = onWorkoutClick;
     this.#onWorkoutDelete = onWorkoutDelete;
+    this.#onWorkoutEdit = onWorkoutEdit;
     this.#containerEl.addEventListener('click', this.#handleClick.bind(this));
   }
 
@@ -31,6 +33,19 @@ export class WorkoutRenderer {
   remove(workoutId) {
     this.#itemFor(workoutId)?.remove();
     this.#syncEmptyState();
+  }
+
+  // Replaces in place so an edited workout keeps its position in the list.
+  replace(workoutId, workout) {
+    const existingEl = this.#itemFor(workoutId);
+    if (!existingEl) return;
+
+    const replacementEl = this.#buildItem(workout);
+    replacementEl.style.setProperty(
+      '--card-index',
+      existingEl.style.getPropertyValue('--card-index')
+    );
+    existingEl.replaceWith(replacementEl);
   }
 
   clear() {
@@ -96,15 +111,25 @@ export class WorkoutRenderer {
 
     buttonEl.append(headerEl, metricsEl);
 
-    // Sibling of the select button, not a child: buttons cannot nest.
-    const deleteEl = document.createElement('button');
-    deleteEl.type = 'button';
-    deleteEl.className = 'workout__delete';
-    deleteEl.setAttribute('aria-label', `Delete ${workout.description}`);
-    deleteEl.textContent = '✕';
+    // Siblings of the select button, not children: buttons cannot nest.
+    const actionsEl = document.createElement('span');
+    actionsEl.className = 'workout__actions';
+    actionsEl.append(
+      this.#buildAction('workout__edit', '✎', `Edit ${workout.description}`),
+      this.#buildAction('workout__delete', '✕', `Delete ${workout.description}`)
+    );
 
-    itemEl.append(buttonEl, deleteEl);
+    itemEl.append(buttonEl, actionsEl);
     return itemEl;
+  }
+
+  #buildAction(className, glyph, label) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = `workout__action ${className}`;
+    el.setAttribute('aria-label', label);
+    el.textContent = glyph;
+    return el;
   }
 
   #buildDetail(icon, value, unit) {
@@ -134,6 +159,11 @@ export class WorkoutRenderer {
 
     if (e.target.closest('.workout__delete')) {
       this.#onWorkoutDelete?.(workoutEl.dataset.id);
+      return;
+    }
+
+    if (e.target.closest('.workout__edit')) {
+      this.#onWorkoutEdit?.(workoutEl.dataset.id);
       return;
     }
 

@@ -45,7 +45,15 @@ function buildFormDOM() {
   cadInput.className = 'form__input form__input--cadence';
   cadRow.appendChild(cadInput);
 
-  formEl.append(typeRow, distRow, durRow, elevRow, cadRow);
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'form__row form__row--actions';
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'form__btn';
+  submitBtn.type = 'submit';
+  submitBtn.textContent = 'Add workout';
+  actionsRow.appendChild(submitBtn);
+
+  formEl.append(typeRow, distRow, durRow, elevRow, cadRow, actionsRow);
   workoutsEl.appendChild(formEl);
   return workoutsEl;
 }
@@ -128,6 +136,157 @@ describe('WorkoutFormController', () => {
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(onValidationError).toHaveBeenCalled();
+  });
+
+  it('switching to cycling shows elevation and hides cadence', () => {
+    const typeEl = containerEl.querySelector('.form__input--type');
+    typeEl.value = 'cycling';
+    typeEl.dispatchEvent(new Event('change'));
+
+    const rowOf = (sel) => containerEl.querySelector(sel).closest('.form__row');
+    expect(
+      rowOf('.form__input--elevation').classList.contains('form__row--hidden')
+    ).toBe(false);
+    expect(
+      rowOf('.form__input--cadence').classList.contains('form__row--hidden')
+    ).toBe(true);
+  });
+
+  it('switching back to running restores the cadence field', () => {
+    const typeEl = containerEl.querySelector('.form__input--type');
+    typeEl.value = 'cycling';
+    typeEl.dispatchEvent(new Event('change'));
+    typeEl.value = 'running';
+    typeEl.dispatchEvent(new Event('change'));
+
+    const rowOf = (sel) => containerEl.querySelector(sel).closest('.form__row');
+    expect(
+      rowOf('.form__input--cadence').classList.contains('form__row--hidden')
+    ).toBe(false);
+    expect(
+      rowOf('.form__input--elevation').classList.contains('form__row--hidden')
+    ).toBe(true);
+  });
+
+  it('corrects a desynced type on construction, without a change event', () => {
+    // A browser restoring the select value on soft reload fires no event.
+    const dom = buildFormDOM();
+    dom.querySelector('.form__input--type').value = 'cycling';
+    document.body.appendChild(dom);
+
+    new WorkoutFormController({
+      containerEl: dom,
+      onSubmit: vi.fn(),
+      onValidationError: vi.fn(),
+    });
+
+    const rowOf = (sel) => dom.querySelector(sel).closest('.form__row');
+    expect(
+      rowOf('.form__input--elevation').classList.contains('form__row--hidden')
+    ).toBe(false);
+    expect(
+      rowOf('.form__input--cadence').classList.contains('form__row--hidden')
+    ).toBe(true);
+    document.body.removeChild(dom);
+  });
+
+  describe('edit mode', () => {
+    const workout = {
+      id: 'abc',
+      type: 'cycling',
+      coords: [1, 2],
+      distance: 20,
+      duration: 60,
+      elevation: 300,
+    };
+
+    it('prefills the form from the workout', () => {
+      controller.showForEdit(workout);
+
+      expect(containerEl.querySelector('.form__input--type').value).toBe(
+        'cycling'
+      );
+      expect(containerEl.querySelector('.form__input--distance').value).toBe(
+        '20'
+      );
+      expect(containerEl.querySelector('.form__input--elevation').value).toBe(
+        '300'
+      );
+    });
+
+    it('shows the fields matching the edited type', () => {
+      controller.showForEdit(workout);
+
+      const rowOf = (sel) =>
+        containerEl.querySelector(sel).closest('.form__row');
+      expect(
+        rowOf('.form__input--elevation').classList.contains('form__row--hidden')
+      ).toBe(false);
+      expect(
+        rowOf('.form__input--cadence').classList.contains('form__row--hidden')
+      ).toBe(true);
+    });
+
+    it('relabels the submit button', () => {
+      controller.showForEdit(workout);
+      expect(containerEl.querySelector('.form__btn').textContent).toBe(
+        WorkoutFormController.EDIT_LABEL
+      );
+    });
+
+    it('submits with the editing id and the original coordinates', () => {
+      controller.showForEdit(workout);
+      containerEl
+        .querySelector('.form')
+        .dispatchEvent(new Event('submit', { cancelable: true }));
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          editingId: 'abc',
+          coords: [1, 2],
+          distance: 20,
+        })
+      );
+    });
+
+    it('a map click cancels a pending edit', () => {
+      controller.showForEdit(workout);
+      expect(controller.isEditing).toBe(true);
+
+      controller.show({ latlng: { lat: 9, lng: 9 } });
+
+      expect(controller.isEditing).toBe(false);
+      expect(containerEl.querySelector('.form__input--distance').value).toBe(
+        ''
+      );
+      expect(containerEl.querySelector('.form__btn').textContent).toBe(
+        WorkoutFormController.ADD_LABEL
+      );
+    });
+
+    it('submitting clears edit mode for the next open', () => {
+      controller.showForEdit(workout);
+      containerEl
+        .querySelector('.form')
+        .dispatchEvent(new Event('submit', { cancelable: true }));
+
+      expect(controller.isEditing).toBe(false);
+      expect(containerEl.querySelector('.form__btn').textContent).toBe(
+        WorkoutFormController.ADD_LABEL
+      );
+    });
+
+    it('a failed edit keeps the form in edit mode', () => {
+      controller.showForEdit({ ...workout, distance: 20 });
+      containerEl.querySelector('.form__input--distance').value = '-1';
+      containerEl
+        .querySelector('.form')
+        .dispatchEvent(new Event('submit', { cancelable: true }));
+
+      expect(onValidationError).toHaveBeenCalled();
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(controller.isEditing).toBe(true);
+    });
   });
 
   it('negative elevation cycling is valid (downhill)', () => {

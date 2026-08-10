@@ -170,3 +170,95 @@ test('selecting a workout opens its popup', async ({ page }) => {
     'Running'
   );
 });
+
+test('editing a workout updates it in place', async ({ page }) => {
+  await addWorkout(page, {
+    x: 400,
+    y: 250,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+  await addWorkout(page, {
+    x: 600,
+    y: 500,
+    distance: '8',
+    duration: '40',
+    cadence: '175',
+  });
+
+  const target = page.locator('.workout').last();
+  await target.locator('.workout__edit').click();
+
+  await expect(page.locator('.form__input--distance')).toHaveValue('5');
+  await expect(page.locator('.form__btn')).toHaveText('Save changes');
+
+  await page.locator('.form__input--distance').fill('12');
+  await page.locator('.form__btn').click();
+
+  // Still two cards, and the edited one kept its position at the end.
+  await expect(page.locator('.workout')).toHaveCount(2);
+  await expect(page.locator('.workout').last()).toContainText('12');
+  await expect(page.locator('[data-summary="distance"]')).toHaveText('20');
+  await expect(page.locator('.form__btn')).toHaveText('Add workout');
+});
+
+test('an edit can change the workout type', async ({ page }) => {
+  await addWorkout(page, {
+    x: 500,
+    y: 300,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+
+  await page.locator('.workout__edit').click();
+  await page.locator('.form__input--type').selectOption('cycling');
+  await page.locator('.form__input--elevation').fill('250');
+  await page.locator('.form__btn').click();
+
+  const card = page.locator('.workout');
+  await expect(card).toHaveClass(/workout--cycling/);
+  await expect(card).toContainText('250');
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(1);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.workout')).toHaveClass(/workout--cycling/);
+});
+
+test('edits survive a reload', async ({ page }) => {
+  await addWorkout(page, {
+    x: 500,
+    y: 300,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+
+  await page.locator('.workout__edit').click();
+  await page.locator('.form__input--duration').fill('99');
+  await page.locator('.form__btn').click();
+  await expect(page.locator('.workout')).toContainText('99');
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.workout')).toContainText('99');
+  await expect(page.locator('.workout')).toHaveCount(1);
+});
+
+test('clicking the map cancels a pending edit', async ({ page }) => {
+  await addWorkout(page, {
+    x: 400,
+    y: 250,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+
+  await page.locator('.workout__edit').click();
+  await expect(page.locator('.form__btn')).toHaveText('Save changes');
+
+  await page.locator('#map').click({ position: { x: 650, y: 550 } });
+
+  await expect(page.locator('.form__btn')).toHaveText('Add workout');
+  await expect(page.locator('.form__input--distance')).toHaveValue('');
+});

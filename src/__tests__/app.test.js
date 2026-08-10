@@ -30,6 +30,7 @@ vi.mock('../form/WorkoutFormController.js', () => ({
     constructor(opts) {
       this.opts = opts;
       this.show = vi.fn();
+      this.showForEdit = vi.fn();
       this.hide = vi.fn();
       mocks.forms.push(this);
     }
@@ -43,6 +44,7 @@ vi.mock('../renderer/WorkoutRenderer.js', () => ({
       this.render = vi.fn();
       this.renderAll = vi.fn();
       this.remove = vi.fn();
+      this.replace = vi.fn();
       this.clear = vi.fn();
       mocks.renderers.push(this);
     }
@@ -332,6 +334,121 @@ describe('App', () => {
       expect(lastBanner().show).toHaveBeenCalledWith(
         expect.stringContaining('could not be saved')
       );
+    });
+  });
+
+  describe('editing a workout', () => {
+    const addWorkout = (data = RUNNING_FORM_DATA) => {
+      lastForm().opts.onSubmit(data);
+      return lastMap().renderMarker.mock.calls.at(-1)[0];
+    };
+
+    it('opens the form prefilled with the workout', () => {
+      new App();
+      const created = addWorkout();
+
+      lastRenderer().opts.onWorkoutEdit(created.id);
+
+      expect(lastForm().showForEdit).toHaveBeenCalledWith(created);
+    });
+
+    it('ignores an edit request for an unknown id', () => {
+      new App();
+      lastRenderer().opts.onWorkoutEdit('nope');
+      expect(lastForm().showForEdit).not.toHaveBeenCalled();
+    });
+
+    it('replaces the workout in place rather than appending', () => {
+      new App();
+      const created = addWorkout();
+
+      lastForm().opts.onSubmit({
+        ...RUNNING_FORM_DATA,
+        distance: 12,
+        editingId: created.id,
+      });
+
+      const stored = WorkoutStorage.load();
+      expect(stored).toHaveLength(1);
+      expect(stored[0].distance).toBe(12);
+      expect(lastRenderer().replace).toHaveBeenCalledWith(
+        created.id,
+        expect.objectContaining({ distance: 12 })
+      );
+    });
+
+    it('keeps the original id and date', () => {
+      new App();
+      const created = addWorkout();
+
+      lastForm().opts.onSubmit({
+        ...RUNNING_FORM_DATA,
+        distance: 12,
+        editingId: created.id,
+      });
+
+      const [stored] = WorkoutStorage.load();
+      expect(stored.id).toBe(created.id);
+      expect(stored.date.getTime()).toBe(created.date.getTime());
+    });
+
+    it('re-renders the marker so a changed type gets the right popup', () => {
+      new App();
+      const created = addWorkout();
+
+      lastForm().opts.onSubmit({
+        ...CYCLING_FORM_DATA,
+        editingId: created.id,
+      });
+
+      expect(lastMap().removeMarker).toHaveBeenCalledWith(created.id);
+      const [replacement] = lastMap().renderMarker.mock.calls.at(-1);
+      expect(replacement).toBeInstanceOf(Cycling);
+      expect(replacement.id).toBe(created.id);
+    });
+
+    it('recomputes the description after a type change', () => {
+      new App();
+      const created = addWorkout();
+
+      lastForm().opts.onSubmit({
+        ...CYCLING_FORM_DATA,
+        editingId: created.id,
+      });
+
+      const [stored] = WorkoutStorage.load();
+      expect(stored.description).toMatch(/^Cycling/);
+      expect(created.description).toMatch(/^Running/);
+    });
+
+    it('updates the summary after an edit', () => {
+      new App();
+      const created = addWorkout();
+
+      lastForm().opts.onSubmit({
+        ...RUNNING_FORM_DATA,
+        distance: 42,
+        editingId: created.id,
+      });
+
+      expect(
+        document.querySelector('[data-summary="distance"]').textContent
+      ).toBe('42');
+    });
+
+    it('ignores an edit submission for an id that no longer exists', () => {
+      new App();
+      addWorkout();
+
+      lastForm().opts.onSubmit({
+        ...RUNNING_FORM_DATA,
+        distance: 99,
+        editingId: 'gone',
+      });
+
+      const stored = WorkoutStorage.load();
+      expect(stored).toHaveLength(1);
+      expect(stored[0].distance).toBe(5);
     });
   });
 

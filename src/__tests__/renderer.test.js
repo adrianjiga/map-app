@@ -7,6 +7,7 @@ describe('WorkoutRenderer', () => {
   let containerEl;
   let onWorkoutClick;
   let onWorkoutDelete;
+  let onWorkoutEdit;
   let renderer;
 
   beforeEach(() => {
@@ -23,10 +24,12 @@ describe('WorkoutRenderer', () => {
     document.body.appendChild(containerEl);
     onWorkoutClick = vi.fn();
     onWorkoutDelete = vi.fn();
+    onWorkoutEdit = vi.fn();
     renderer = new WorkoutRenderer({
       containerEl,
       onWorkoutClick,
       onWorkoutDelete,
+      onWorkoutEdit,
     });
   });
 
@@ -234,6 +237,52 @@ describe('WorkoutRenderer', () => {
     expect(indexes).toHaveLength(10);
     expect(new Set(indexes).size).toBe(10);
     expect(indexes).toContain('9');
+  });
+
+  it('renders a labelled edit button per card', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+    const editBtn = containerEl.querySelector('.workout__edit');
+    expect(editBtn.tagName).toBe('BUTTON');
+    expect(editBtn.getAttribute('aria-label')).toBe(`Edit ${r.description}`);
+  });
+
+  it('edit button fires onWorkoutEdit only', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+
+    containerEl.querySelector('.workout__edit').click();
+
+    expect(onWorkoutEdit).toHaveBeenCalledWith(r.id);
+    expect(onWorkoutClick).not.toHaveBeenCalled();
+    expect(onWorkoutDelete).not.toHaveBeenCalled();
+  });
+
+  it('replace swaps the card in place, keeping list position', () => {
+    const first = new Running([0, 0], 5, 30, 160);
+    const second = new Cycling([1, 1], 20, 60, 500);
+    renderer.renderAll([first, second]);
+
+    const positionBefore = [...containerEl.querySelectorAll('.workout')]
+      .map((el) => el.dataset.id)
+      .indexOf(first.id);
+
+    const edited = new Running([0, 0], 9, 55, 175);
+    edited.id = first.id;
+    renderer.replace(first.id, edited);
+
+    const ids = [...containerEl.querySelectorAll('.workout')].map(
+      (el) => el.dataset.id
+    );
+    expect(ids.indexOf(first.id)).toBe(positionBefore);
+    expect(containerEl.querySelectorAll('.workout')).toHaveLength(2);
+    expect(containerEl.textContent).toContain('9');
+  });
+
+  it('replace ignores an unknown id', () => {
+    renderer.render(new Running([0, 0], 5, 30, 160));
+    renderer.replace('nope', new Running([0, 0], 1, 1, 1));
+    expect(containerEl.querySelectorAll('.workout')).toHaveLength(1);
   });
 
   it('Running output does not contain km/h (no type-switching leak)', () => {

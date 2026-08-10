@@ -15,6 +15,7 @@ and no account.
 
 - Log running and cycling workouts by clicking on the map
 - Each workout gets a map marker and a sidebar card
+- Edit a workout in place, including changing its type
 - Delete individual workouts, or clear all with a confirmation step
 - Running summary: workout count, total distance, total duration
 - Fit the map to every marker at once
