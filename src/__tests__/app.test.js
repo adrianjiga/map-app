@@ -32,6 +32,7 @@ vi.mock('../form/WorkoutFormController.js', () => ({
       this.opts = opts;
       this.show = vi.fn();
       this.showForEdit = vi.fn();
+      this.setUnits = vi.fn();
       this.hide = vi.fn();
       mocks.forms.push(this);
     }
@@ -94,6 +95,10 @@ function buildDom() {
         <span data-summary="duration">0</span>
       </div>
       <div class="workout-controls" hidden>
+        <select data-control="units">
+          <option value="metric">Kilometres</option>
+          <option value="imperial">Miles</option>
+        </select>
         <select data-control="filter">
           <option value="all">All types</option>
           <option value="running">Running</option>
@@ -109,6 +114,11 @@ function buildDom() {
       <div class="sidebar__actions" hidden>
         <button type="button" data-action="fit">Fit to markers</button>
         <button type="button" data-action="clear">Clear all</button>
+      </div>
+      <div class="sidebar__transfer">
+        <button type="button" data-action="export">Export JSON</button>
+        <button type="button" data-action="import">Import JSON</button>
+        <input id="workout-import" type="file" />
       </div>
       <ul class="workouts">
         <li class="form__item"><form class="form hidden"></form></li>
@@ -817,6 +827,194 @@ describe('App', () => {
       new App();
       const [, options] = lastRenderer().renderAll.mock.calls.at(-1);
       expect(options.emptyMessage).toBeUndefined();
+    });
+  });
+
+  describe('import and export', () => {
+    const addWorkout = (data = RUNNING_FORM_DATA) => {
+      lastForm().opts.onSubmit(data);
+      return lastMap().renderMarker.mock.calls.at(-1)[0];
+    };
+
+    const exportedText = () => {
+      const original = new Running([51.5, -0.09], 5, 30, 170);
+      return JSON.stringify({ version: 1, workouts: [original] });
+    };
+
+    // Drives the real file-input path rather than a test-only entry point.
+    const importFile = async (text) => {
+      const inputEl = document.querySelector('#workout-import');
+      const file = new File([text], 'workouts.json', {
+        type: 'application/json',
+      });
+      Object.defineProperty(inputEl, 'files', {
+        value: [file],
+        configurable: true,
+      });
+      inputEl.dispatchEvent(new Event('change'));
+      await flush();
+    };
+
+    it('warns instead of exporting an empty list', () => {
+      new App();
+      document.querySelector('[data-action="export"]').click();
+
+      expect(lastBanner().show).toHaveBeenCalledWith(
+        expect.stringContaining('no workouts to export')
+      );
+    });
+
+    it('exports a downloadable file', () => {
+      const click = vi.fn();
+      const createObjectURL = vi.fn(() => 'blob:fake');
+      const revokeObjectURL = vi.fn();
+      vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+      const createElement = document.createElement.bind(document);
+      vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = createElement(tag);
+        if (tag === 'a') el.click = click;
+        return el;
+      });
+
+      new App();
+      addWorkout();
+      document.querySelector('[data-action="export"]').click();
+
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      expect(click).toHaveBeenCalledTimes(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake');
+    });
+
+    it('opens the file picker from the import button', () => {
+      new App();
+      const inputEl = document.querySelector('#workout-import');
+      const click = vi.spyOn(inputEl, 'click');
+
+      document.querySelector('[data-action="import"]').click();
+
+      expect(click).toHaveBeenCalledTimes(1);
+    });
+
+    it('adds imported workouts and persists them', async () => {
+      new App();
+      await importFile(exportedText());
+
+      const stored = WorkoutStorage.load();
+      expect(stored).toHaveLength(1);
+      expect(stored[0].distance).toBe(5);
+      expect(lastMap().renderMarker).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports how many workouts were imported', async () => {
+      new App();
+      await importFile(exportedText());
+
+      expect(lastBanner().show).toHaveBeenCalledWith(
+        expect.stringContaining('Imported 1 workout')
+      );
+    });
+
+    it('skips workouts already present rather than duplicating them', async () => {
+      new App();
+      const text = exportedText();
+      await importFile(text);
+      await importFile(text);
+
+      expect(WorkoutStorage.load()).toHaveLength(1);
+      expect(lastBanner().show).toHaveBeenLastCalledWith(
+        expect.stringContaining('already present')
+      );
+    });
+
+    it('never deletes existing workouts', async () => {
+      new App();
+      const existing = addWorkout();
+      await importFile(exportedText());
+
+      const ids = WorkoutStorage.load().map((w) => w.id);
+      expect(ids).toContain(existing.id);
+      expect(ids).toHaveLength(2);
+    });
+
+    it('surfaces a parse error without changing anything', async () => {
+      new App();
+      addWorkout();
+      await importFile('not json {{{');
+
+      expect(lastBanner().show).toHaveBeenLastCalledWith(
+        expect.stringContaining('not valid JSON')
+      );
+      expect(WorkoutStorage.load()).toHaveLength(1);
+    });
+
+    it('counts unreadable entries in the summary', async () => {
+      new App();
+      await importFile(
+        JSON.stringify({ workouts: [{ type: 'swimming' }, { type: 'bad' }] })
+      );
+
+      expect(lastBanner().show).toHaveBeenLastCalledWith(
+        expect.stringContaining('2 unreadable')
+      );
+    });
+  });
+
+  describe('units', () => {
+    const addWorkout = (data = RUNNING_FORM_DATA) => {
+      lastForm().opts.onSubmit(data);
+      return lastMap().renderMarker.mock.calls.at(-1)[0];
+    };
+    const setUnits = (value) => {
+      const el = document.querySelector('[data-control="units"]');
+      el.value = value;
+      el.dispatchEvent(new Event('change'));
+    };
+
+    it('defaults to metric', () => {
+      new App();
+      addWorkout();
+      const [, options] = lastRenderer().renderAll.mock.calls.at(-1);
+      expect(options.units).toBe('metric');
+    });
+
+    it('passes the chosen system to the renderer and the form', () => {
+      new App();
+      addWorkout();
+      setUnits('imperial');
+
+      const [, options] = lastRenderer().renderAll.mock.calls.at(-1);
+      expect(options.units).toBe('imperial');
+      expect(lastForm().setUnits).toHaveBeenCalledWith('imperial');
+    });
+
+    it('persists the preference', () => {
+      new App();
+      setUnits('imperial');
+      expect(localStorage.getItem(App.UNITS_KEY)).toBe('imperial');
+    });
+
+    it('restores the preference on the next visit', () => {
+      localStorage.setItem(App.UNITS_KEY, 'imperial');
+      new App();
+      expect(document.querySelector('[data-control="units"]').value).toBe(
+        'imperial'
+      );
+    });
+
+    it('ignores an unrecognised stored preference', () => {
+      localStorage.setItem(App.UNITS_KEY, 'furlongs');
+      new App();
+      addWorkout();
+      const [, options] = lastRenderer().renderAll.mock.calls.at(-1);
+      expect(options.units).toBe('metric');
+    });
+
+    it('never rewrites stored distances', () => {
+      new App();
+      addWorkout();
+      setUnits('imperial');
+
+      expect(WorkoutStorage.load()[0].distance).toBe(5);
     });
   });
 

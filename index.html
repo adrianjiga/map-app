@@ -125,6 +125,22 @@
         </button>
       </div>
 
+      <div class="sidebar__transfer">
+        <button class="sidebar__action" type="button" data-action="export">
+          Export JSON
+        </button>
+        <button class="sidebar__action" type="button" data-action="import">
+          Import JSON
+        </button>
+        <input
+          class="visually-hidden"
+          id="workout-import"
+          type="file"
+          accept="application/json,.json"
+          aria-label="Choose a workout export to import"
+        />
+      </div>
+
       <ul class="workouts">
         <li class="form__item">
           <form class="form hidden" aria-label="Add workout">

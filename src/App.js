@@ -2,6 +2,11 @@ import { MapService } from './map/MapService.js';
 import { WorkoutFormController } from './form/WorkoutFormController.js';
 import { WorkoutRenderer } from './renderer/WorkoutRenderer.js';
 import { WorkoutStorage } from './storage/WorkoutStorage.js';
+import {
+  serializeWorkouts,
+  parseWorkouts,
+  exportFilename,
+} from './storage/WorkoutTransfer.js';
 import { ErrorBanner } from './ui/ErrorBanner.js';
 import { WorkoutSummary } from './ui/WorkoutSummary.js';
 import { WORKOUT_REGISTRY } from './workouts/index.js';
@@ -201,6 +206,92 @@ export class App {
       .querySelector('[data-action="fit"]')
       ?.addEventListener('click', () => this.#mapService.fitToWorkouts());
     this.#clearBtnEl?.addEventListener('click', () => this.#handleClearAll());
+
+    document
+      .querySelector('[data-action="export"]')
+      ?.addEventListener('click', () => this.#exportWorkouts());
+
+    const importInputEl = document.querySelector('#workout-import');
+    document
+      .querySelector('[data-action="import"]')
+      ?.addEventListener('click', () => importInputEl?.click());
+    importInputEl?.addEventListener('change', (e) =>
+      this.#importFromFile(e.target)
+    );
+  }
+
+  #exportWorkouts() {
+    if (this.#workouts.length === 0) {
+      this.#errorBanner.show('There are no workouts to export yet.');
+      return;
+    }
+
+    const blob = new Blob([serializeWorkouts(this.#workouts)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = exportFilename();
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async #importFromFile(inputEl) {
+    const file = inputEl.files?.[0];
+    if (!file) return;
+    // Reset first, so re-picking the same file still fires a change event.
+    inputEl.value = '';
+
+    let text;
+    try {
+      text = await file.text();
+    } catch {
+      this.#errorBanner.show('That file could not be read.');
+      return;
+    }
+
+    this.#importWorkouts(text);
+  }
+
+  /**
+   * Imports are additive and keyed by id: restoring a backup into an empty app
+   * reproduces it exactly, and importing the same file twice is a no-op rather
+   * than a duplicate. Nothing is ever deleted by an import.
+   */
+  #importWorkouts(text) {
+    const { workouts, skipped, error } = parseWorkouts(text);
+    if (error) {
+      this.#errorBanner.show(error);
+      return;
+    }
+
+    const known = new Set(this.#workouts.map((workout) => workout.id));
+    const added = workouts.filter((workout) => !known.has(workout.id));
+
+    added.forEach((workout) => {
+      this.#workouts.push(workout);
+      this.#mapService.renderMarker(workout);
+    });
+
+    this.#refreshSidebar();
+    if (added.length > 0) this.#persist();
+
+    this.#errorBanner.show(
+      App.#importSummary(added.length, workouts.length, skipped)
+    );
+  }
+
+  static #importSummary(added, valid, skipped) {
+    if (added === 0 && valid === 0 && skipped === 0) {
+      return 'That export contained no workouts.';
+    }
+
+    const parts = [`Imported ${added} workout${added === 1 ? '' : 's'}`];
+    const duplicates = valid - added;
+    if (duplicates > 0) parts.push(`${duplicates} already present`);
+    if (skipped > 0) parts.push(`${skipped} unreadable`);
+    return `${parts.join(', ')}.`;
   }
 
   #setUnits(unitsKey) {

@@ -17,6 +17,8 @@ and no account.
 - Each workout gets a map marker and a sidebar card
 - Edit a workout in place, including changing its type
 - Sort by date, distance or duration, and filter by type — the map filters with the list
+- Switch between kilometres and miles; stored data stays in metric
+- Export your workouts as JSON and import them back as a backup
 - Delete individual workouts, or clear all with a confirmation step
 - Running summary: workout count, total distance, total duration
 - Fit the map to every marker at once
@@ -100,6 +102,7 @@ There is no backend. Two `localStorage` keys are used, both same-origin and
 never transmitted:
 
 - `workouts` — your logged workouts, including their map coordinates
+- `units` — whether you prefer kilometres or miles
 - `lastPosition` — your last known position, rounded to roughly 1 km and
   discarded after 24 hours, used only to render the initial map view without
   waiting on the geolocation prompt

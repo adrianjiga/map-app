@@ -372,3 +372,133 @@ test('the active view survives adding and deleting workouts', async ({
   await page.locator('[data-control="filter"]').selectOption('all');
   await expect(page.locator('.workout')).toHaveCount(2);
 });
+
+test('units toggle converts display without touching stored data', async ({
+  page,
+}) => {
+  await addWorkout(page, {
+    x: 400,
+    y: 300,
+    distance: '10',
+    duration: '50',
+    cadence: '170',
+  });
+
+  const distance = page.locator('.workout__value').first();
+  await expect(distance).toHaveText('10');
+  await expect(page.locator('[data-summary-label="distance"]')).toHaveText(
+    'Total km'
+  );
+
+  await page.locator('[data-control="units"]').selectOption('imperial');
+
+  await expect(distance).toHaveText('6.2');
+  // Units are lowercase in the DOM; CSS uppercases them for display.
+  await expect(page.locator('.workout__unit').first()).toHaveText('mi');
+  await expect(page.locator('.workout__unit').nth(2)).toHaveText('min/mi');
+  await expect(page.locator('[data-summary-label="distance"]')).toHaveText(
+    'Total mi'
+  );
+
+  const stored = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('workouts'))[0].distance
+  );
+  expect(stored).toBe(10);
+});
+
+test('the units preference survives a reload', async ({ page }) => {
+  await addWorkout(page, {
+    x: 400,
+    y: 300,
+    distance: '10',
+    duration: '50',
+    cadence: '170',
+  });
+  await page.locator('[data-control="units"]').selectOption('imperial');
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('[data-control="units"]')).toHaveValue('imperial');
+  await expect(page.locator('.workout__value').first()).toHaveText('6.2');
+});
+
+test('editing in miles does not drift the stored distance', async ({
+  page,
+}) => {
+  await addWorkout(page, {
+    x: 400,
+    y: 300,
+    distance: '10',
+    duration: '50',
+    cadence: '170',
+  });
+  await page.locator('[data-control="units"]').selectOption('imperial');
+
+  await page.locator('.workout__edit').click();
+  await page.locator('.form__input--duration').fill('55');
+  await page.locator('.form__btn').click();
+
+  const stored = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('workouts'))[0]
+  );
+  expect(stored.distance).toBe(10);
+  expect(stored.duration).toBe(55);
+});
+
+test('workouts export and import back after a wipe', async ({ page }) => {
+  await addWorkout(page, {
+    x: 300,
+    y: 250,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+  await addWorkout(page, {
+    x: 500,
+    y: 400,
+    distance: '8',
+    duration: '40',
+    cadence: '175',
+  });
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('[data-action="export"]').click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(
+    /^workouts-\d{4}-\d{2}-\d{2}\.json$/
+  );
+  const file = await download.path();
+
+  await page.locator('[data-action="clear"]').click();
+  await page.locator('[data-action="clear"]').click();
+  await expect(page.locator('.workout')).toHaveCount(0);
+
+  await page.locator('#workout-import').setInputFiles(file);
+
+  await expect(page.locator('.workout')).toHaveCount(2);
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(2);
+  await expect(page.locator('.error-banner')).toContainText('Imported 2');
+});
+
+test('importing the same file twice does not duplicate workouts', async ({
+  page,
+}) => {
+  await addWorkout(page, {
+    x: 400,
+    y: 300,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('[data-action="export"]').click(),
+  ]);
+  const file = await download.path();
+
+  await page.locator('#workout-import').setInputFiles(file);
+  await expect(page.locator('.error-banner')).toContainText('already present');
+  await expect(page.locator('.workout')).toHaveCount(1);
+});
