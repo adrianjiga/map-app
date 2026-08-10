@@ -3,6 +3,7 @@ export class WorkoutRenderer {
   #onWorkoutClick;
   #onWorkoutDelete;
   #onWorkoutEdit;
+  #defaultEmptyMessage;
 
   constructor({ containerEl, onWorkoutClick, onWorkoutDelete, onWorkoutEdit }) {
     this.#containerEl = containerEl;
@@ -25,9 +26,26 @@ export class WorkoutRenderer {
     this.#syncEmptyState();
   }
 
-  renderAll(workouts) {
-    workouts.forEach((workout) => this.render(workout));
-    this.#syncEmptyState();
+  /**
+   * Renders exactly the given list, in the given order. Used for every list
+   * mutation once sorting exists, because an insert-at-top shortcut would
+   * silently ignore the active sort.
+   */
+  renderAll(workouts, { emptyMessage } = {}) {
+    this.clear();
+
+    let anchorEl = this.#containerEl.querySelector('.form__item, .form');
+    workouts.forEach((workout) => {
+      const itemEl = this.#buildItem(workout);
+      if (anchorEl) {
+        anchorEl.after(itemEl);
+        anchorEl = itemEl;
+      } else {
+        this.#containerEl.append(itemEl);
+      }
+    });
+
+    this.#syncEmptyState(emptyMessage);
   }
 
   remove(workoutId) {
@@ -55,9 +73,12 @@ export class WorkoutRenderer {
     this.#syncEmptyState();
   }
 
-  #syncEmptyState() {
+  #syncEmptyState(emptyMessage) {
     const emptyEl = this.#containerEl.querySelector('.workouts__empty');
     if (!emptyEl) return;
+
+    this.#defaultEmptyMessage ??= emptyEl.textContent.trim();
+    emptyEl.textContent = emptyMessage ?? this.#defaultEmptyMessage;
     emptyEl.hidden = this.#containerEl.querySelector('.workout') !== null;
   }
 

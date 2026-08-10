@@ -262,3 +262,113 @@ test('clicking the map cancels a pending edit', async ({ page }) => {
   await expect(page.locator('.form__btn')).toHaveText('Add workout');
   await expect(page.locator('.form__input--distance')).toHaveValue('');
 });
+
+async function addCycling(page, { x, y, distance, duration, elevation }) {
+  await page.locator('#map').click({ position: { x, y } });
+  await page.locator('.form__input--type').selectOption('cycling');
+  await page.locator('.form__input--distance').fill(distance);
+  await page.locator('.form__input--duration').fill(duration);
+  await page.locator('.form__input--elevation').fill(elevation);
+  await page.locator('.form__btn').click();
+}
+
+async function seedMixed(page) {
+  await addWorkout(page, {
+    x: 250,
+    y: 200,
+    distance: '2',
+    duration: '15',
+    cadence: '170',
+  });
+  await addCycling(page, {
+    x: 450,
+    y: 350,
+    distance: '30',
+    duration: '80',
+    elevation: '250',
+  });
+  await page.locator('#map').click({ position: { x: 620, y: 520 } });
+  await page.locator('.form__input--type').selectOption('running');
+  await page.locator('.form__input--distance').fill('10');
+  await page.locator('.form__input--duration').fill('55');
+  await page.locator('.form__input--cadence').fill('175');
+  await page.locator('.form__btn').click();
+  await expect(page.locator('.workout')).toHaveCount(3);
+}
+
+test('view controls appear only once a workout exists', async ({ page }) => {
+  await expect(page.locator('.workout-controls')).toBeHidden();
+
+  await addWorkout(page, {
+    x: 400,
+    y: 300,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+
+  await expect(page.locator('.workout-controls')).toBeVisible();
+});
+
+test('sorting reorders the sidebar list', async ({ page }) => {
+  await seedMixed(page);
+
+  await page.locator('[data-control="sort"]').selectOption('distance');
+  await expect(
+    page.locator('.workout').first().locator('.workout__value').first()
+  ).toHaveText('30');
+
+  await page.locator('[data-control="sort"]').selectOption('oldest');
+  await expect(
+    page.locator('.workout').first().locator('.workout__value').first()
+  ).toHaveText('2');
+});
+
+test('filtering hides both the cards and their markers', async ({ page }) => {
+  await seedMixed(page);
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(3);
+
+  await page.locator('[data-control="filter"]').selectOption('cycling');
+
+  await expect(page.locator('.workout')).toHaveCount(1);
+  await expect(page.locator('.workout')).toHaveClass(/workout--cycling/);
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(1);
+  await expect(page.locator('[data-summary="count"]')).toHaveText('1');
+
+  await page.locator('[data-control="filter"]').selectOption('all');
+  await expect(page.locator('.workout')).toHaveCount(3);
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(3);
+});
+
+test('a filter with no matches explains itself', async ({ page }) => {
+  await addWorkout(page, {
+    x: 400,
+    y: 300,
+    distance: '5',
+    duration: '30',
+    cadence: '170',
+  });
+
+  await page.locator('[data-control="filter"]').selectOption('cycling');
+
+  const empty = page.locator('.workouts__empty');
+  await expect(empty).toBeVisible();
+  await expect(empty).toContainText('cycling');
+});
+
+test('the active view survives adding and deleting workouts', async ({
+  page,
+}) => {
+  await seedMixed(page);
+  await page.locator('[data-control="filter"]').selectOption('running');
+  await page.locator('[data-control="sort"]').selectOption('distance');
+  await expect(page.locator('.workout')).toHaveCount(2);
+
+  await page.locator('.workout').first().locator('.workout__delete').click();
+
+  await expect(page.locator('.workout')).toHaveCount(1);
+  await expect(page.locator('.workout')).toContainText('2');
+  // The cycling workout is untouched, just filtered out.
+  await page.locator('[data-control="filter"]').selectOption('all');
+  await expect(page.locator('.workout')).toHaveCount(2);
+});

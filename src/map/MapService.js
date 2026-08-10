@@ -187,10 +187,31 @@ export class MapService {
     });
   }
 
+  /**
+   * Detaches markers whose workout is filtered out and re-attaches the rest.
+   * The marker objects are kept either way, so popups and bindings survive a
+   * round trip through a filter.
+   */
+  showOnlyMarkers(visibleIds) {
+    this.#whenReady(() => {
+      const visible = new Set(visibleIds);
+      this.#markers.forEach((marker, id) => {
+        if (visible.has(id)) {
+          if (!this.#map.hasLayer(marker)) marker.addTo(this.#map);
+        } else if (this.#map.hasLayer(marker)) {
+          this.#map.removeLayer(marker);
+        }
+      });
+    });
+  }
+
   fitToWorkouts() {
     this.#whenReady(() => {
-      if (this.#markers.size === 0) return;
-      const group = L.featureGroup([...this.#markers.values()]);
+      const visible = [...this.#markers.values()].filter((marker) =>
+        this.#map.hasLayer(marker)
+      );
+      if (visible.length === 0) return;
+      const group = L.featureGroup(visible);
       this.#map.fitBounds(group.getBounds(), { padding: [40, 40] });
     });
   }

@@ -4,16 +4,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const iconState = vi.hoisted(() => ({ merged: null }));
 
 vi.mock('leaflet', () => {
+  // Mirrors Leaflet's own attach/detach bookkeeping so hasLayer() is meaningful.
+  const attached = new Set();
   const mapInstance = {
     setView: vi.fn().mockReturnThis(),
     on: vi.fn().mockReturnThis(),
-    removeLayer: vi.fn(),
+    removeLayer: vi.fn(function (marker) {
+      attached.delete(marker);
+    }),
+    hasLayer: vi.fn((marker) => attached.has(marker)),
     fitBounds: vi.fn(),
   };
   // A fresh object per L.marker() call, so the registry holds distinct markers.
   const newMarker = () => {
     const marker = {
-      addTo: vi.fn(() => marker),
+      addTo: vi.fn(() => {
+        attached.add(marker);
+        return marker;
+      }),
       bindPopup: vi.fn(() => marker),
       setPopupContent: vi.fn(() => marker),
       openPopup: vi.fn(() => marker),

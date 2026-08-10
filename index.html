@@ -65,6 +65,38 @@
         </p>
       </div>
 
+      <div class="workout-controls" hidden>
+        <div class="workout-controls__field">
+          <label class="workout-controls__label" for="workout-filter">
+            Show
+          </label>
+          <select
+            class="workout-controls__select"
+            id="workout-filter"
+            data-control="filter"
+          >
+            <option value="all">All types</option>
+            <option value="running">Running</option>
+            <option value="cycling">Cycling</option>
+          </select>
+        </div>
+        <div class="workout-controls__field">
+          <label class="workout-controls__label" for="workout-sort">
+            Sort
+          </label>
+          <select
+            class="workout-controls__select"
+            id="workout-sort"
+            data-control="sort"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="distance">Longest distance</option>
+            <option value="duration">Longest duration</option>
+          </select>
+        </div>
+      </div>
+
       <div class="sidebar__actions" hidden>
         <button class="sidebar__action" type="button" data-action="fit">
           Fit to markers

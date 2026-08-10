@@ -17,6 +17,7 @@ vi.mock('../map/MapService.js', () => ({
       this.renderMarker = vi.fn();
       this.removeMarker = vi.fn();
       this.removeAllMarkers = vi.fn();
+      this.showOnlyMarkers = vi.fn();
       this.moveToWorkout = vi.fn();
       this.fitToWorkouts = vi.fn();
       this.renderStoredMarkers = vi.fn();
@@ -91,6 +92,19 @@ function buildDom() {
         <span data-summary="count">0</span>
         <span data-summary="distance">0</span>
         <span data-summary="duration">0</span>
+      </div>
+      <div class="workout-controls" hidden>
+        <select data-control="filter">
+          <option value="all">All types</option>
+          <option value="running">Running</option>
+          <option value="cycling">Cycling</option>
+        </select>
+        <select data-control="sort">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="distance">Longest distance</option>
+          <option value="duration">Longest duration</option>
+        </select>
       </div>
       <div class="sidebar__actions" hidden>
         <button type="button" data-action="fit">Fit to markers</button>
@@ -216,7 +230,9 @@ describe('App', () => {
       new App();
       lastForm().opts.onSubmit(RUNNING_FORM_DATA);
 
-      expect(lastRenderer().render).toHaveBeenCalledTimes(1);
+      const [rendered] = lastRenderer().renderAll.mock.calls.at(-1);
+      expect(rendered).toHaveLength(1);
+      expect(rendered[0].distance).toBe(5);
     });
 
     it('persists the workout', () => {
@@ -250,7 +266,7 @@ describe('App', () => {
       );
       // The workout still reaches the map and the sidebar.
       expect(lastMap().renderMarker).toHaveBeenCalledTimes(1);
-      expect(lastRenderer().render).toHaveBeenCalledTimes(1);
+      expect(lastRenderer().renderAll.mock.calls.at(-1)[0]).toHaveLength(1);
     });
 
     it('forwards validation errors to the banner', () => {
@@ -296,7 +312,7 @@ describe('App', () => {
       lastRenderer().opts.onWorkoutDelete(created.id);
 
       expect(lastMap().removeMarker).toHaveBeenCalledWith(created.id);
-      expect(lastRenderer().remove).toHaveBeenCalledWith(created.id);
+      expect(lastRenderer().renderAll.mock.calls.at(-1)[0]).toEqual([]);
       expect(WorkoutStorage.load()).toHaveLength(0);
     });
 
@@ -371,10 +387,9 @@ describe('App', () => {
       const stored = WorkoutStorage.load();
       expect(stored).toHaveLength(1);
       expect(stored[0].distance).toBe(12);
-      expect(lastRenderer().replace).toHaveBeenCalledWith(
-        created.id,
-        expect.objectContaining({ distance: 12 })
-      );
+      expect(lastRenderer().renderAll.mock.calls.at(-1)[0]).toEqual([
+        expect.objectContaining({ distance: 12 }),
+      ]);
     });
 
     it('keeps the original id and date', () => {
@@ -662,7 +677,7 @@ describe('App', () => {
       clearBtn().click();
 
       expect(lastMap().removeAllMarkers).toHaveBeenCalledTimes(1);
-      expect(lastRenderer().clear).toHaveBeenCalledTimes(1);
+      expect(lastRenderer().renderAll.mock.calls.at(-1)[0]).toEqual([]);
       expect(WorkoutStorage.load()).toHaveLength(0);
       expect(actionsEl().hidden).toBe(true);
     });
@@ -691,6 +706,117 @@ describe('App', () => {
 
       expect(clearBtn().textContent).toBe('Clear all');
       expect(WorkoutStorage.load()).toHaveLength(2);
+    });
+  });
+
+  describe('sorting and filtering', () => {
+    const addWorkout = (data) => {
+      lastForm().opts.onSubmit(data);
+      return lastMap().renderMarker.mock.calls.at(-1)[0];
+    };
+    const setControl = (name, value) => {
+      const el = document.querySelector(`[data-control="${name}"]`);
+      el.value = value;
+      el.dispatchEvent(new Event('change'));
+    };
+    const renderedIds = () =>
+      lastRenderer()
+        .renderAll.mock.calls.at(-1)[0]
+        .map((workout) => workout.id);
+
+    const seed = () => {
+      const short = addWorkout({ ...RUNNING_FORM_DATA, distance: 2 });
+      const ride = addWorkout({ ...CYCLING_FORM_DATA, distance: 30 });
+      const long = addWorkout({ ...RUNNING_FORM_DATA, distance: 10 });
+      return { short, ride, long };
+    };
+
+    it('hides the controls until there is a workout', () => {
+      new App();
+      const controls = document.querySelector('.workout-controls');
+      expect(controls.hidden).toBe(true);
+
+      addWorkout(RUNNING_FORM_DATA);
+      expect(controls.hidden).toBe(false);
+    });
+
+    it('filters the list to one type', () => {
+      new App();
+      const { ride } = seed();
+
+      setControl('filter', 'cycling');
+
+      expect(renderedIds()).toEqual([ride.id]);
+    });
+
+    it('filters the markers on the map to match', () => {
+      new App();
+      const { ride } = seed();
+
+      setControl('filter', 'cycling');
+
+      expect(lastMap().showOnlyMarkers).toHaveBeenLastCalledWith([ride.id]);
+    });
+
+    it('summary totals reflect the filter, not the whole list', () => {
+      new App();
+      seed();
+
+      setControl('filter', 'cycling');
+
+      expect(document.querySelector('[data-summary="count"]').textContent).toBe(
+        '1'
+      );
+      expect(
+        document.querySelector('[data-summary="distance"]').textContent
+      ).toBe('30');
+    });
+
+    it('sorts by distance', () => {
+      new App();
+      const { short, ride, long } = seed();
+
+      setControl('sort', 'distance');
+
+      expect(renderedIds()).toEqual([ride.id, long.id, short.id]);
+    });
+
+    it('keeps sort and filter applied together', () => {
+      new App();
+      const { short, long } = seed();
+
+      setControl('filter', 'running');
+      setControl('sort', 'distance');
+
+      expect(renderedIds()).toEqual([long.id, short.id]);
+    });
+
+    it('keeps the active view when a workout is added', () => {
+      new App();
+      seed();
+      setControl('filter', 'cycling');
+
+      addWorkout({ ...RUNNING_FORM_DATA, distance: 7 });
+
+      // The new running workout is stored but filtered out of the view.
+      expect(WorkoutStorage.load()).toHaveLength(4);
+      expect(renderedIds()).toHaveLength(1);
+    });
+
+    it('explains an empty view caused by the filter', () => {
+      new App();
+      addWorkout(RUNNING_FORM_DATA);
+
+      setControl('filter', 'cycling');
+
+      const [, options] = lastRenderer().renderAll.mock.calls.at(-1);
+      expect(options.emptyMessage).toMatch(/cycling/);
+    });
+
+    it('uses the default empty message when there are no workouts at all', () => {
+      new App();
+      const [, options] = lastRenderer().renderAll.mock.calls.at(-1);
+      expect(options.emptyMessage).toBeUndefined();
     });
   });
 
