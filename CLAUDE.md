@@ -39,6 +39,7 @@ src/
     index.js                  Re-exports classes + WORKOUT_REGISTRY (type -> class)
   map/
     MapService.js             Wraps Leaflet: init() Promise, renderMarker(), moveToWorkout()
+                              Marker registry by workout id: removeMarker(), fitToWorkouts()
                               Queues calls made before the map exists; pins icon URLs
   form/
     WorkoutFormController.js  Form show/hide/validate; fires onSubmit({type,...,coords})
@@ -50,6 +51,7 @@ src/
     validators.js             validateRunning, validateCycling, VALIDATORS map
   ui/
     ErrorBanner.js            role=alert live region + dismiss button; no alert()
+    WorkoutSummary.js         Count / total distance / total duration strip
   style.css
   __tests__/                  8 test files + setup.js (104 tests)
 e2e/                          Playwright smoke suite against the production build
@@ -73,7 +75,10 @@ e2e/                          Playwright smoke suite against the production buil
 - **Map calls are queued before init** — the sidebar renders stored workouts before geolocation resolves, so `renderMarker()`/`moveToWorkout()` buffer until `#initMap()` runs. `.workouts--loading` keeps the cards inert meanwhile.
 - **`WorkoutStorage.save()` returns a boolean** — `false` means the write was rejected (quota, private mode); `App` surfaces that through `ErrorBanner`.
 - **No `alert()`** — all errors go through `ErrorBanner.show()` with 4s auto-dismiss.
-- **`app.reset()`** — exposed on `window.app`; call from the browser console to wipe localStorage and reload.
+- **`app.reset()`** — exposed on `window.app`; call from the browser console to wipe both localStorage keys (`workouts`, `lastPosition`) and reload. The in-app "Clear all" button only clears workouts.
+- **Marker registry** — `MapService` keeps `id -> L.Marker` so markers can be removed individually or fitted in bulk. All Leaflet state stays inside `MapService`; no other module knows Leaflet exists.
+- **Destructive actions are two-step, not `confirm()`** — "Clear all" arms for `App.CLEAR_CONFIRM_MS` and clears on a second click. Native dialogs are banned by `no-alert`, and a real modal would need its own focus management.
+- **`[hidden] { display: none !important }`** — any class setting `display` outranks the UA's `[hidden]` rule, so elements toggled via the attribute would otherwise stay visible.
 - **`WorkoutFormController.ANIMATION_DURATION_MS = 1000`** — named constant for the form hide `setTimeout`.
 
 ### Accessibility Invariants
@@ -86,6 +91,8 @@ Guarded by `e2e/a11y.spec.js`, which fails on any serious or critical axe violat
 - **Decorative emoji carry `aria-hidden="true"`** — `.workout__icon` and `.workout__type-badge`.
 - **The mobile sidebar is a modal overlay** — opening traps Tab, sets `aria-expanded`, marks `#map` `inert`, and moves focus to the close button; closing restores focus to the hamburger. Escape closes.
 - **`--accent-ui-strong`** exists because white on `--accent-ui` is only 4.46:1. Use it for any solid button with white text.
+- **`--color-error-strong`** for white text on a red fill; **`--color-error-text`** for red text on a dark surface. Plain `--color-error` fails AA in both roles.
+- **`--text-secondary` is `#7c8aa0`**, not the original `#64748b`, which was 3.76:1 on `--bg-card`.
 - **Reduced motion** — a `prefers-reduced-motion` block neutralises animations, and `MapService.prefersReducedMotion()` drops the pan animation.
 
 ### CSS Tokens
