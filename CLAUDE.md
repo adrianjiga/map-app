@@ -30,8 +30,8 @@ Modular ES-module app (Vite + vanilla JS). Entry point is `src/main.js`.
 
 ```
 src/
-  main.js                     Vite entry: imports CSS, instantiates App
-  App.js                      Orchestrator; no DOM queries or L. calls
+  main.js                     Vite entry: imports fonts + CSS, instantiates App
+  App.js                      Orchestrator; owns sidebar chrome wiring, never calls L.
   workouts/
     Workout.js                Base class: date, id, _setDescription() with Intl
     Running.js                calcPace(), getSpecificFields(), static emoji/popupClass
@@ -46,25 +46,30 @@ src/
   renderer/
     WorkoutRenderer.js        Builds cards as DOM nodes (never innerHTML); event delegation
   storage/
-    WorkoutStorage.js         save()/load() with prototype-restoring hydration
+    WorkoutStorage.js         save() -> boolean; load() with prototype-restoring hydration
   validation/
     validators.js             validateRunning, validateCycling, VALIDATORS map
   ui/
     ErrorBanner.js            role=alert live region + dismiss button; no alert()
     WorkoutSummary.js         Count / total distance / total duration strip
   style.css
-  __tests__/                  8 test files + setup.js (104 tests)
-e2e/                          Playwright smoke suite against the production build
+  __tests__/                  One unit suite per module + setup.js
+e2e/
+  smoke.spec.js               Core flows against the production build
+  a11y.spec.js                axe scans + keyboard and focus behaviour
+  workouts.spec.js            Delete, summary, clear-all, fit-to-markers
+                              (run with `npm run test:e2e`)
 ```
 
 ### Initialization Flow
 
-1. `new App()` → renders stored workouts from `WorkoutStorage.load()` into sidebar
-2. `MapService.init()` → Promise wrapping geolocation → Leaflet map initializes
-3. Map resolves → `renderStoredMarkers()` places markers for loaded workouts
-4. Map click → `WorkoutFormController.show(mapEvent)`
-5. Form submit → `VALIDATORS[type]` → fires `onSubmit` or `onValidationError`
-6. `App.#handleFormSubmit` → creates `Running`/`Cycling` → `renderMarker()` + `render()` + `WorkoutStorage.save()`
+1. `new App()` → renders stored workouts from `WorkoutStorage.load()` into the sidebar, then `#refreshSidebar()` updates the summary and control visibility
+2. The list is marked `.workouts--loading` — cards exist but cannot pan a map that does not exist yet
+3. `MapService.init()` → Promise wrapping geolocation → Leaflet map initializes (from a cached position when one is fresh, otherwise from a prompt)
+4. Map resolves → loading class cleared → `renderStoredMarkers()` places markers; anything queued during the wait replays
+5. Map click → `WorkoutFormController.show(mapEvent)`
+6. Form submit → `VALIDATORS[type]` → fires `onSubmit` or `onValidationError`
+7. `App.#handleFormSubmit` → `WORKOUT_REGISTRY[type].fromFormData()` → `renderMarker()` + `render()` + `#refreshSidebar()` + `#persist()`
 
 ### Key Design Decisions
 
@@ -105,8 +110,17 @@ Guarded by `e2e/a11y.spec.js`, which fails on any serious or critical axe violat
 
 ### CSS Tokens
 
+Sport accents:
+
 - `--color-running: #00e887` — running sidebar border + popup
 - `--color-cycling: #ffaa00` — cycling sidebar border + popup
+
+Contrast-sensitive tokens have paired variants; see Accessibility Invariants
+above before introducing a new colour:
+
+- `--accent-ui` / `--accent-ui-strong` — focus rings and borders / solid buttons with white text
+- `--color-error` / `--color-error-strong` / `--color-error-text` — accents / white-on-red fills / red text on dark surfaces
+- `--text-primary` / `--text-secondary` / `--text-muted`
 
 ### Adding a New Workout Type
 
@@ -115,5 +129,9 @@ Guarded by `e2e/a11y.spec.js`, which fails on any serious or critical axe violat
 3. Add a `static fromFormData({ coords, distance, duration, ... })` factory, and register the class in `WORKOUT_REGISTRY` in `src/workouts/index.js`
 4. Add `<option value="swimming">` in `index.html`
 5. Add CSS token + `.workout--swimming` rule in `src/style.css`
+6. Add a case to `src/__tests__/workout.test.js` and, if the sport has a distinct
+   field, to `src/__tests__/validators.test.js`
 
-Zero changes needed to `WorkoutRenderer`, `MapService`, `ErrorBanner`, or `App`.
+Zero changes needed to `WorkoutRenderer`, `MapService`, `WorkoutSummary`,
+`ErrorBanner`, or `App` — they read `getSpecificFields()`, the static type
+metadata, and `distance`/`duration`, none of which are type-specific.
