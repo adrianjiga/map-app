@@ -1,4 +1,17 @@
 import L from 'leaflet';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Leaflet guesses its icon path by reading the background-image of the
+// .leaflet-default-icon-path rule. Vite inlines that PNG as a data URI, which
+// defeats the guess and yields 404s in the production build, so point Leaflet
+// at the bundler-resolved URLs instead.
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
 
 export class MapService {
   #map;

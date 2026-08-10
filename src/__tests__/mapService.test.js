@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Captured at module-import time, so it survives the vi.clearAllMocks() below.
+const iconState = vi.hoisted(() => ({ merged: null }));
+
 vi.mock('leaflet', () => {
   const mapInstance = {
     setView: vi.fn().mockReturnThis(),
@@ -17,6 +20,13 @@ vi.mock('leaflet', () => {
       tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
       marker: vi.fn(() => markerChain),
       popup: vi.fn((opts) => opts),
+      Icon: {
+        Default: {
+          mergeOptions: vi.fn((options) => {
+            iconState.merged = options;
+          }),
+        },
+      },
     },
   };
 });
@@ -98,6 +108,16 @@ describe('MapService', () => {
     const cachedService = new MapService({ onMapClick: vi.fn() });
     await expect(cachedService.init()).resolves.toBeUndefined();
     expect(L.map).toHaveBeenCalled();
+  });
+
+  it('points Leaflet at bundler-resolved marker icons', () => {
+    expect(iconState.merged).toEqual(
+      expect.objectContaining({
+        iconUrl: expect.any(String),
+        iconRetinaUrl: expect.any(String),
+        shadowUrl: expect.any(String),
+      })
+    );
   });
 
   it('renderStoredMarkers calls renderMarker for each workout', () => {
