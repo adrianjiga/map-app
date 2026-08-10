@@ -575,7 +575,7 @@ body {
 
 .form__row--actions {
   grid-column: 1 / -1;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .form__btn {
@@ -588,8 +588,12 @@ body {
   background-color: var(--accent-ui-strong);
   border: none;
   border-radius: 6px;
-  padding: 0.7rem 1.8rem;
-  margin-top: 0.5rem;
+  /* Wide enough to read as the form's primary action and to be a comfortable
+     touch target; capped so it never overflows the single-column mobile form. */
+  min-width: 24rem;
+  max-width: 100%;
+  padding: 0.9rem 2.4rem;
+  margin-top: 0.8rem;
   cursor: pointer;
   transition:
     background-color 0.2s ease,
