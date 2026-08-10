@@ -97,6 +97,9 @@ body {
 
 .logo {
   height: 5.2rem;
+  /* The intrinsic width/height attributes let the browser reserve the right
+     box before the image loads; width:auto keeps the aspect ratio. */
+  width: auto;
 }
 
 .sidebar__close-btn {
