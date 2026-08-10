@@ -131,7 +131,7 @@ a:visited {
 .error-banner {
   background: linear-gradient(135deg, #ef4444, #b91c1c);
   color: #fff;
-  padding: 1rem 1.5rem 1rem 3.5rem;
+  padding: 1rem 3.5rem 1rem 3.5rem;
   border-radius: 8px;
   margin-bottom: 1.5rem;
   font-size: 1.4rem;
@@ -147,6 +147,39 @@ a:visited {
   left: 1.2rem;
   top: 50%;
   transform: translateY(-50%);
+}
+
+.error-banner__message {
+  display: block;
+}
+
+.error-banner__dismiss {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 1.3rem;
+  color: #fff;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.error-banner__dismiss:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.error-banner__dismiss:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
 }
 
 .error-banner--hidden {

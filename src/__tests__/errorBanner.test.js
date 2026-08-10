@@ -30,8 +30,42 @@ describe('ErrorBanner', () => {
 
   it('show sets the text content', () => {
     banner.show('Test error message');
-    const el = containerEl.querySelector('.error-banner');
+    const el = containerEl.querySelector('.error-banner__message');
     expect(el.textContent).toBe('Test error message');
+  });
+
+  it('is announced to assistive tech', () => {
+    const el = containerEl.querySelector('.error-banner');
+    expect(el.getAttribute('role')).toBe('alert');
+    expect(el.getAttribute('aria-live')).toBe('assertive');
+  });
+
+  it('exposes a labelled dismiss button that hides the banner', () => {
+    banner.show('Test error message');
+    const dismiss = containerEl.querySelector('.error-banner__dismiss');
+    expect(dismiss.getAttribute('aria-label')).toBe('Dismiss error');
+
+    dismiss.click();
+    expect(
+      containerEl
+        .querySelector('.error-banner')
+        .classList.contains('error-banner--hidden')
+    ).toBe(true);
+  });
+
+  it('manual dismissal cancels the pending auto-dismiss timer', () => {
+    vi.useFakeTimers();
+    banner.show('Test', { autoDismissMs: 1000 });
+    containerEl.querySelector('.error-banner__dismiss').click();
+
+    banner.show('Second message', { autoDismissMs: 1000 });
+    vi.advanceTimersByTime(600);
+    // The first banner's timer must not have fired and hidden this one.
+    expect(
+      containerEl
+        .querySelector('.error-banner')
+        .classList.contains('error-banner--hidden')
+    ).toBe(false);
   });
 
   it('auto-dismisses after the specified timeout', () => {
