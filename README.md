@@ -36,6 +36,10 @@ Requires browser geolocation permission to initialize the map.
 | `npm run lint`   | ESLint           |
 | `npm run format` | Prettier         |
 
+## License
+
+[MIT](./LICENSE)
+
 ## Author
 
 [@adrianjiga](https://github.com/adrianjiga) · [LinkedIn](https://www.linkedin.com/in/adrianjiga/)
