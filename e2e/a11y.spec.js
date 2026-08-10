@@ -11,6 +11,14 @@ const scan = (page) =>
     .exclude('.leaflet-control-container')
     .analyze();
 
+// The form fades in over 0.5s and cards slide in over 0.4s. Scanning mid
+// transition makes axe measure contrast against a partially transparent
+// element, which fails intermittently.
+const settled = (page) =>
+  page.waitForFunction(() =>
+    document.getAnimations().every((a) => a.playState !== 'running')
+  );
+
 const serious = (results) =>
   results.violations.filter((v) => ['serious', 'critical'].includes(v.impact));
 
@@ -36,6 +44,8 @@ test.beforeEach(async ({ page }) => {
 test('landing page has no serious accessibility violations', async ({
   page,
 }) => {
+  await settled(page);
+
   const results = await scan(page);
   expect(describeViolations(serious(results))).toEqual([]);
 });
@@ -43,6 +53,7 @@ test('landing page has no serious accessibility violations', async ({
 test('open form has no serious accessibility violations', async ({ page }) => {
   await page.locator('#map').click(MAP_CLICK);
   await expect(page.locator('.form')).not.toHaveClass(/hidden/);
+  await settled(page);
 
   const results = await scan(page);
   expect(describeViolations(serious(results))).toEqual([]);
@@ -57,6 +68,7 @@ test('rendered workout cards have no serious accessibility violations', async ({
   await page.locator('.form__input--cadence').fill('170');
   await page.locator('.form__btn').click();
   await expect(page.locator('.workout')).toHaveCount(1);
+  await settled(page);
 
   const results = await scan(page);
   expect(describeViolations(serious(results))).toEqual([]);
