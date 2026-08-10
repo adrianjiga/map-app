@@ -4,12 +4,15 @@ on:
   push:
     branches:
       - master
-      - improvements-feb-2026
-      - epic/**
+  # Unfiltered: work targeting an integration branch still gets checked.
   pull_request:
-    branches:
-      - master
-      - improvements-feb-2026
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:

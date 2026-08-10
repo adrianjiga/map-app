@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*.*.*'
 
+# Default deny; the release job widens this to contents: write for itself.
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Build & Publish Release Artifact
