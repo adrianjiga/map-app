@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { Workout } from '../workouts/Workout.js';
 import { Running } from '../workouts/Running.js';
 import { Cycling } from '../workouts/Cycling.js';
 
@@ -67,6 +68,28 @@ describe('Running', () => {
     const r = new Running([0, 0], 10, 50, 170);
     const [pace] = r.getSpecificFields();
     expect(pace.unit).toBe('min/km');
+  });
+});
+
+describe('Workout locale', () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute('lang');
+  });
+
+  it('follows the document language when one is declared', () => {
+    document.documentElement.lang = 'en';
+    expect(Workout.locale()).toBe('en');
+  });
+
+  it('falls back to the browser locale when lang is unset', () => {
+    document.documentElement.removeAttribute('lang');
+    expect(Workout.locale()).toBe(navigator.language);
+  });
+
+  it('formats descriptions with the document language', () => {
+    document.documentElement.lang = 'en';
+    const r = new Running([0, 0], 10, 50, 170);
+    expect(r.description).toMatch(/^Running on [A-Z][a-z]+ \d+$/);
   });
 });
 
