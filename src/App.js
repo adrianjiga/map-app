@@ -25,6 +25,7 @@ export class App {
     this.#renderer = new WorkoutRenderer({
       containerEl: workoutsEl,
       onWorkoutClick: this.#handleWorkoutClick.bind(this),
+      onWorkoutDelete: this.#handleWorkoutDelete.bind(this),
     });
 
     this.#formController = new WorkoutFormController({
@@ -75,11 +76,25 @@ export class App {
     this.#mapService.renderMarker(workout);
     this.#renderer.render(workout);
 
+    this.#persist(
+      'Workout added to the map but could not be saved — it will be lost on reload.'
+    );
+  }
+
+  #persist(failureMessage = 'Changes could not be saved to this browser.') {
     if (!WorkoutStorage.save(this.#workouts)) {
-      this.#errorBanner.show(
-        'Workout added to the map but could not be saved — it will be lost on reload.'
-      );
+      this.#errorBanner.show(failureMessage);
     }
+  }
+
+  #handleWorkoutDelete(workoutId) {
+    const index = this.#workouts.findIndex((w) => w.id === workoutId);
+    if (index === -1) return;
+
+    this.#workouts.splice(index, 1);
+    this.#mapService.removeMarker(workoutId);
+    this.#renderer.remove(workoutId);
+    this.#persist();
   }
 
   #handleWorkoutClick(workoutId) {

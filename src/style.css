@@ -201,6 +201,7 @@ a:visited {
 }
 
 .workout {
+  position: relative;
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
@@ -257,6 +258,51 @@ a:visited {
   outline-offset: 3px;
 }
 
+.workout__delete {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.workout:hover .workout__delete,
+.workout__delete:focus-visible {
+  opacity: 1;
+}
+
+.workout__delete:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.workout__delete:focus-visible {
+  outline: 2px solid var(--accent-ui);
+  outline-offset: 2px;
+}
+
+/* Touch devices have no hover, so the control must always be reachable. */
+@media (hover: none) {
+  .workout__delete {
+    opacity: 1;
+  }
+}
+
 .workout--running {
   border-left: 5px solid var(--color-running);
   box-shadow: var(--shadow-glow-running);
@@ -283,6 +329,7 @@ a:visited {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 3rem;
   margin-bottom: 1.2rem;
 }
 

@@ -15,7 +15,10 @@ vi.mock('../map/MapService.js', () => ({
       this.opts = opts;
       this.init = vi.fn(() => mocks.initResult ?? Promise.resolve());
       this.renderMarker = vi.fn();
+      this.removeMarker = vi.fn();
+      this.removeAllMarkers = vi.fn();
       this.moveToWorkout = vi.fn();
+      this.fitToWorkouts = vi.fn();
       this.renderStoredMarkers = vi.fn();
       mocks.maps.push(this);
     }
@@ -39,6 +42,8 @@ vi.mock('../renderer/WorkoutRenderer.js', () => ({
       this.opts = opts;
       this.render = vi.fn();
       this.renderAll = vi.fn();
+      this.remove = vi.fn();
+      this.clear = vi.fn();
       mocks.renderers.push(this);
     }
   },
@@ -262,6 +267,61 @@ describe('App', () => {
       lastRenderer().opts.onWorkoutClick('does-not-exist');
 
       expect(lastMap().moveToWorkout).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleting a workout', () => {
+    const addWorkout = () => {
+      lastForm().opts.onSubmit(RUNNING_FORM_DATA);
+      return lastMap().renderMarker.mock.calls.at(-1)[0];
+    };
+
+    it('removes the marker, the card and the stored entry', () => {
+      new App();
+      const created = addWorkout();
+      expect(WorkoutStorage.load()).toHaveLength(1);
+
+      lastRenderer().opts.onWorkoutDelete(created.id);
+
+      expect(lastMap().removeMarker).toHaveBeenCalledWith(created.id);
+      expect(lastRenderer().remove).toHaveBeenCalledWith(created.id);
+      expect(WorkoutStorage.load()).toHaveLength(0);
+    });
+
+    it('deletes only the requested workout', () => {
+      new App();
+      const first = addWorkout();
+      const second = addWorkout();
+
+      lastRenderer().opts.onWorkoutDelete(first.id);
+
+      const remaining = WorkoutStorage.load();
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].id).toBe(second.id);
+    });
+
+    it('ignores an unknown id', () => {
+      new App();
+      addWorkout();
+
+      lastRenderer().opts.onWorkoutDelete('nope');
+
+      expect(lastMap().removeMarker).not.toHaveBeenCalled();
+      expect(WorkoutStorage.load()).toHaveLength(1);
+    });
+
+    it('warns when the deletion could not be persisted', () => {
+      new App();
+      const created = addWorkout();
+
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('QuotaExceededError');
+      });
+      lastRenderer().opts.onWorkoutDelete(created.id);
+
+      expect(lastBanner().show).toHaveBeenCalledWith(
+        expect.stringContaining('could not be saved')
+      );
     });
   });
 

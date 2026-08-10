@@ -6,6 +6,7 @@ import { Cycling } from '../workouts/Cycling.js';
 describe('WorkoutRenderer', () => {
   let containerEl;
   let onWorkoutClick;
+  let onWorkoutDelete;
   let renderer;
 
   beforeEach(() => {
@@ -18,7 +19,12 @@ describe('WorkoutRenderer', () => {
     containerEl.appendChild(formItemEl);
     document.body.appendChild(containerEl);
     onWorkoutClick = vi.fn();
-    renderer = new WorkoutRenderer({ containerEl, onWorkoutClick });
+    onWorkoutDelete = vi.fn();
+    renderer = new WorkoutRenderer({
+      containerEl,
+      onWorkoutClick,
+      onWorkoutDelete,
+    });
   });
 
   afterEach(() => {
@@ -128,6 +134,62 @@ describe('WorkoutRenderer', () => {
     expect(title.textContent).toBe('<img src=x onerror="alert(1)">');
     expect(title.querySelector('img')).toBeNull();
     expect(containerEl.querySelector('img')).toBeNull();
+  });
+
+  it('renders a labelled delete button per card', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+    const deleteBtn = containerEl.querySelector('.workout__delete');
+    expect(deleteBtn.tagName).toBe('BUTTON');
+    expect(deleteBtn.getAttribute('aria-label')).toBe(
+      `Delete ${r.description}`
+    );
+  });
+
+  it('delete button fires onWorkoutDelete, not onWorkoutClick', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    renderer.render(r);
+
+    containerEl.querySelector('.workout__delete').click();
+
+    expect(onWorkoutDelete).toHaveBeenCalledWith(r.id);
+    expect(onWorkoutClick).not.toHaveBeenCalled();
+  });
+
+  it('the delete button is not nested inside the select button', () => {
+    renderer.render(new Running([0, 0], 5, 30, 160));
+    const selectBtn = containerEl.querySelector('.workout__select');
+    expect(selectBtn.querySelector('.workout__delete')).toBeNull();
+  });
+
+  it('remove deletes only the matching card', () => {
+    const r = new Running([0, 0], 5, 30, 160);
+    const c = new Cycling([1, 1], 20, 60, 500);
+    renderer.renderAll([r, c]);
+
+    renderer.remove(r.id);
+
+    const remaining = containerEl.querySelectorAll('.workout');
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].dataset.id).toBe(c.id);
+  });
+
+  it('remove ignores an unknown id', () => {
+    renderer.render(new Running([0, 0], 5, 30, 160));
+    renderer.remove('nope');
+    expect(containerEl.querySelectorAll('.workout')).toHaveLength(1);
+  });
+
+  it('clear removes every card but keeps the form', () => {
+    renderer.renderAll([
+      new Running([0, 0], 5, 30, 160),
+      new Cycling([1, 1], 20, 60, 500),
+    ]);
+
+    renderer.clear();
+
+    expect(containerEl.querySelectorAll('.workout')).toHaveLength(0);
+    expect(containerEl.querySelector('.form')).not.toBeNull();
   });
 
   it('Running output does not contain km/h (no type-switching leak)', () => {
