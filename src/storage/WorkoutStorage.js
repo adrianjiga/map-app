@@ -1,10 +1,4 @@
-import { Running } from '../workouts/Running.js';
-import { Cycling } from '../workouts/Cycling.js';
-
-const WORKOUT_REGISTRY = {
-  running: Running,
-  cycling: Cycling,
-};
+import { WORKOUT_REGISTRY } from '../workouts/index.js';
 
 export class WorkoutStorage {
   /**

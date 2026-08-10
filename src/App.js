@@ -3,7 +3,7 @@ import { WorkoutFormController } from './form/WorkoutFormController.js';
 import { WorkoutRenderer } from './renderer/WorkoutRenderer.js';
 import { WorkoutStorage } from './storage/WorkoutStorage.js';
 import { ErrorBanner } from './ui/ErrorBanner.js';
-import { Running, Cycling } from './workouts/index.js';
+import { WORKOUT_REGISTRY } from './workouts/index.js';
 
 export class App {
   #workouts = [];
@@ -59,14 +59,14 @@ export class App {
       });
   }
 
-  #handleFormSubmit({ type, distance, duration, cadence, elevation, coords }) {
-    let workout;
-
-    if (type === 'running') {
-      workout = new Running(coords, distance, duration, cadence);
-    } else if (type === 'cycling') {
-      workout = new Cycling(coords, distance, duration, elevation);
+  #handleFormSubmit(data) {
+    const Cls = WORKOUT_REGISTRY[data.type];
+    if (!Cls) {
+      this.#errorBanner.show(`Unknown workout type: ${data.type}`);
+      return;
     }
+
+    const workout = Cls.fromFormData(data);
 
     this.#workouts.push(workout);
     this.#mapService.renderMarker(workout);

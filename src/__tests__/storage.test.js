@@ -70,6 +70,14 @@ describe('WorkoutStorage', () => {
     expect(loaded[1] instanceof Cycling).toBe(true);
   });
 
+  it('load skips entries with an unknown type', () => {
+    localStorage.setItem(
+      'workouts',
+      JSON.stringify([{ type: 'swimming', distance: 1 }])
+    );
+    expect(WorkoutStorage.load()).toEqual([]);
+  });
+
   describe('when localStorage rejects the write', () => {
     afterEach(() => {
       vi.restoreAllMocks();

@@ -5,6 +5,10 @@ export class Cycling extends Workout {
   static emoji = '🚴‍♀️';
   static popupClass = 'cycling-popup';
 
+  static fromFormData({ coords, distance, duration, elevation }) {
+    return new Cycling(coords, distance, duration, elevation);
+  }
+
   constructor(coords, distance, duration, elevation) {
     super(coords, distance, duration);
     this.elevation = elevation;
