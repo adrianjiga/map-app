@@ -2,15 +2,29 @@
   "name": "map-app",
   "version": "1.0.0",
   "private": true,
+  "description": "A workout tracker that logs running and cycling sessions on an interactive Leaflet map.",
+  "license": "MIT",
+  "author": "Adrian Jiga",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adrianjiga/map-app.git"
+  },
+  "homepage": "https://adrianjiga.github.io/map-app/",
+  "bugs": {
+    "url": "https://github.com/adrianjiga/map-app/issues"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src/",
-    "lint:check": "eslint src/ --max-warnings 0",
-    "format": "prettier --write src/",
-    "format:check": "prettier --check src/",
+    "lint": "eslint .",
+    "lint:check": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -21,6 +35,7 @@
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.0",

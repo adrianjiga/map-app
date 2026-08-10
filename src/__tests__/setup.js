@@ -1,4 +1,4 @@
-Object.defineProperty(global.navigator, 'geolocation', {
+Object.defineProperty(globalThis.navigator, 'geolocation', {
   value: {
     getCurrentPosition: vi.fn(),
   },

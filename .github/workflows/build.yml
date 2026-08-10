@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - master
-      - improvements-feb-2026
   pull_request:
-    branches:
-      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
