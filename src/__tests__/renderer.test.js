@@ -10,9 +10,12 @@ describe('WorkoutRenderer', () => {
 
   beforeEach(() => {
     containerEl = document.createElement('ul');
+    const formItemEl = document.createElement('li');
+    formItemEl.className = 'form__item';
     const formEl = document.createElement('form');
     formEl.className = 'form hidden';
-    containerEl.appendChild(formEl);
+    formItemEl.appendChild(formEl);
+    containerEl.appendChild(formItemEl);
     document.body.appendChild(containerEl);
     onWorkoutClick = vi.fn();
     renderer = new WorkoutRenderer({ containerEl, onWorkoutClick });
@@ -25,7 +28,7 @@ describe('WorkoutRenderer', () => {
   it('inserts <li> with the correct data-id', () => {
     const r = new Running([0, 0], 5, 30, 160);
     renderer.render(r);
-    const li = containerEl.querySelector('li');
+    const li = containerEl.querySelector('.workout');
     expect(li).not.toBeNull();
     expect(li.dataset.id).toBe(r.id);
   });
@@ -48,26 +51,29 @@ describe('WorkoutRenderer', () => {
     expect(containerEl.innerHTML).toContain('km/h');
   });
 
-  it('inserts workout after the form element', () => {
+  it('inserts workouts as siblings of the form item, not inside it', () => {
     const r = new Running([0, 0], 5, 30, 160);
     renderer.render(r);
+    const formItem = containerEl.querySelector('.form__item');
+    expect(formItem.querySelector('.workout')).toBeNull();
+
     const children = Array.from(containerEl.children);
-    const formIdx = children.findIndex((el) => el.tagName === 'FORM');
-    const liIdx = children.findIndex((el) => el.tagName === 'LI');
-    expect(liIdx).toBeGreaterThan(formIdx);
+    expect(children.indexOf(containerEl.querySelector('.workout'))).toBe(
+      children.indexOf(formItem) + 1
+    );
   });
 
   it('renderAll renders all workouts', () => {
     const r = new Running([0, 0], 5, 30, 160);
     const c = new Cycling([1, 1], 20, 60, 500);
     renderer.renderAll([r, c]);
-    expect(containerEl.querySelectorAll('li')).toHaveLength(2);
+    expect(containerEl.querySelectorAll('.workout')).toHaveLength(2);
   });
 
   it('click on workout item fires onWorkoutClick with id', () => {
     const r = new Running([0, 0], 5, 30, 160);
     renderer.render(r);
-    const li = containerEl.querySelector('li');
+    const li = containerEl.querySelector('.workout');
     li.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(onWorkoutClick).toHaveBeenCalledWith(r.id);
   });

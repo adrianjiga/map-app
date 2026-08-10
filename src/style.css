@@ -279,6 +279,10 @@ a:visited {
 }
 
 /* FORM */
+.form__item {
+  display: block;
+}
+
 .form {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);
@@ -347,8 +351,39 @@ a:visited {
   color: var(--text-primary);
 }
 
+.form__row--actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
 .form__btn {
-  display: none;
+  font-family: 'Oxanium', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background-color: var(--accent-ui);
+  border: none;
+  border-radius: 6px;
+  padding: 0.7rem 1.8rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.form__btn:hover {
+  background-color: #4f46e5;
+}
+
+.form__btn:active {
+  transform: translateY(1px);
+}
+
+.form.hidden .form__btn {
+  visibility: hidden;
 }
 
 /* SIDEBAR FOOTER */

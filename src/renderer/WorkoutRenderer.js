@@ -31,9 +31,9 @@ export class WorkoutRenderer {
       </li>
     `;
 
-    const formEl = this.#containerEl.querySelector('.form');
-    if (formEl) {
-      formEl.insertAdjacentHTML('afterend', html);
+    const anchorEl = this.#containerEl.querySelector('.form__item, .form');
+    if (anchorEl) {
+      anchorEl.insertAdjacentHTML('afterend', html);
     } else {
       this.#containerEl.insertAdjacentHTML('beforeend', html);
     }
