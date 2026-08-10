@@ -189,6 +189,105 @@ describe('MapService', () => {
     expect(L.map.mock.results[0].value.fitBounds).not.toHaveBeenCalled();
   });
 
+  describe('cached position', () => {
+    const cacheKey = 'lastPosition';
+
+    it('reuses a fresh cached position without prompting', async () => {
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ coords: [51.5, -0.09], savedAt: Date.now() })
+      );
+      const geo = navigator.geolocation.getCurrentPosition;
+      geo.mockClear();
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      expect(L.map).toHaveBeenCalled();
+      // Only the background refresh, not a blocking prompt.
+      expect(geo).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores a cached position older than the TTL', async () => {
+      const stale = Date.now() - MapService.CACHE_TTL_MS - 1;
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ coords: [1, 2], savedAt: stale })
+      );
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      // Fell through to a fresh lookup, which the setup resolves at 51.5/-0.09.
+      expect(L.map.mock.results.at(-1).value.setView).toHaveBeenCalledWith(
+        [51.5, -0.09],
+        expect.any(Number)
+      );
+    });
+
+    it('accepts a legacy array entry that predates the timestamp', async () => {
+      localStorage.setItem(cacheKey, JSON.stringify([10, 20]));
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      expect(L.map.mock.results.at(-1).value.setView).toHaveBeenCalledWith(
+        [10, 20],
+        expect.any(Number)
+      );
+    });
+
+    it('rewrites the cache in the timestamped shape', async () => {
+      localStorage.setItem(cacheKey, JSON.stringify([10, 20]));
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      const stored = JSON.parse(localStorage.getItem(cacheKey));
+      expect(stored.coords).toEqual([51.5, -0.09]);
+      expect(typeof stored.savedAt).toBe('number');
+    });
+
+    it('stores the cached position coarsened to ~1km', async () => {
+      localStorage.clear();
+      navigator.geolocation.getCurrentPosition.mockImplementation((success) =>
+        success({ coords: { latitude: 51.5074321, longitude: -0.1277653 } })
+      );
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      const stored = JSON.parse(localStorage.getItem(cacheKey));
+      expect(stored.coords).toEqual([51.51, -0.13]);
+    });
+
+    it('still centres the map on the precise position for this visit', async () => {
+      localStorage.clear();
+      navigator.geolocation.getCurrentPosition.mockImplementation((success) =>
+        success({ coords: { latitude: 51.5074321, longitude: -0.1277653 } })
+      );
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await svc.init();
+
+      expect(L.map.mock.results.at(-1).value.setView).toHaveBeenCalledWith(
+        [51.5074321, -0.1277653],
+        expect.any(Number)
+      );
+    });
+
+    it('ignores a malformed cache entry', async () => {
+      localStorage.setItem(cacheKey, '{"coords":"nope"}');
+
+      const svc = new MapService({ onMapClick: vi.fn() });
+      await expect(svc.init()).resolves.toBeUndefined();
+      expect(L.map.mock.results.at(-1).value.setView).toHaveBeenCalledWith(
+        [51.5, -0.09],
+        expect.any(Number)
+      );
+    });
+  });
+
   it('points Leaflet at bundler-resolved marker icons', () => {
     expect(iconState.merged).toEqual(
       expect.objectContaining({

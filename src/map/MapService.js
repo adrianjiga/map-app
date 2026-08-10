@@ -14,6 +14,16 @@ L.Icon.Default.mergeOptions({
 });
 
 export class MapService {
+  // A cached position is a first-paint shortcut, not a source of truth. Past a
+  // day it is likely wrong for anyone who has travelled, so re-ask instead.
+  static CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+  // The cache only seeds the initial map view at zoom 13, where a viewport
+  // spans several kilometres. Two decimals (~1.1km) is indistinguishable there
+  // and keeps a precise home address out of localStorage. Workout coordinates
+  // are stored at full precision because their markers need it.
+  static CACHE_PRECISION = 2;
+
   #map;
   #mapZoomLevel = 13;
   #onMapClick;
@@ -45,9 +55,9 @@ export class MapService {
         return;
       }
 
-      const cached = localStorage.getItem(this.#CACHED_COORDS_KEY);
+      const cached = this.#readCachedPosition();
       if (cached) {
-        this.#initMap(JSON.parse(cached));
+        this.#initMap(cached);
         resolve();
         // Refresh coords in background for next visit
         navigator.geolocation.getCurrentPosition(
@@ -73,8 +83,38 @@ export class MapService {
     const { latitude, longitude } = position.coords;
     localStorage.setItem(
       this.#CACHED_COORDS_KEY,
-      JSON.stringify([latitude, longitude])
+      JSON.stringify({
+        coords: [MapService.#coarsen(latitude), MapService.#coarsen(longitude)],
+        savedAt: Date.now(),
+      })
     );
+  }
+
+  static #coarsen(degrees) {
+    return Number(degrees.toFixed(MapService.CACHE_PRECISION));
+  }
+
+  #readCachedPosition() {
+    const raw = localStorage.getItem(this.#CACHED_COORDS_KEY);
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw);
+
+      // Entries written before the timestamp existed carry no age. Use them
+      // once — the background refresh immediately rewrites them in the new
+      // shape — rather than making returning users re-approve the prompt.
+      if (Array.isArray(parsed)) return parsed.length === 2 ? parsed : null;
+
+      if (!Array.isArray(parsed?.coords) || parsed.coords.length !== 2) {
+        return null;
+      }
+
+      const age = Date.now() - (parsed.savedAt ?? 0);
+      return age <= MapService.CACHE_TTL_MS ? parsed.coords : null;
+    } catch {
+      return null;
+    }
   }
 
   #initMap(coords) {
