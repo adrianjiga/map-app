@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Running } from '../workouts/Running.js';
 import { Cycling } from '../workouts/Cycling.js';
 
@@ -8,10 +8,20 @@ describe('Running', () => {
     expect(r.pace).toBe(50 / 10);
   });
 
-  it('id is 10-char string', () => {
+  it('id is a non-empty string', () => {
     const r = new Running([0, 0], 10, 50, 170);
     expect(typeof r.id).toBe('string');
-    expect(r.id).toHaveLength(10);
+    expect(r.id.length).toBeGreaterThan(0);
+  });
+
+  it('ids are unique within the same millisecond', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    const ids = new Set(
+      Array.from({ length: 50 }, () => new Running([0, 0], 10, 50, 170).id)
+    );
+    vi.useRealTimers();
+    expect(ids.size).toBe(50);
   });
 
   it('date is a Date instance', () => {
@@ -66,9 +76,10 @@ describe('Cycling', () => {
     expect(c.speed).toBe(20 / (60 / 60));
   });
 
-  it('id is 10-char string', () => {
+  it('id is a non-empty string', () => {
     const c = new Cycling([0, 0], 20, 60, 500);
-    expect(c.id).toHaveLength(10);
+    expect(typeof c.id).toBe('string');
+    expect(c.id.length).toBeGreaterThan(0);
   });
 
   it('description starts with Cycling', () => {

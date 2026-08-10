@@ -5,6 +5,10 @@ export class Running extends Workout {
   static emoji = '🏃‍♂️';
   static popupClass = 'running-popup';
 
+  static fromFormData({ coords, distance, duration, cadence }) {
+    return new Running(coords, distance, duration, cadence);
+  }
+
   constructor(coords, distance, duration, cadence) {
     super(coords, distance, duration);
     this.cadence = cadence;

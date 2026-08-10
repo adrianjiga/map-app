@@ -1,6 +1,10 @@
+const createId = () =>
+  globalThis.crypto?.randomUUID?.() ??
+  `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 export class Workout {
   date = new Date();
-  id = (Date.now() + '').slice(-10);
+  id = createId();
 
   constructor(coords, distance, duration) {
     this.coords = coords;
