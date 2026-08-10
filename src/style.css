@@ -10,7 +10,9 @@
 
   /* Text hierarchy */
   --text-primary: #e2e8f0;
-  --text-secondary: #64748b;
+  /* #64748b was only 3.76:1 on --bg-card; this clears WCAG AA on both
+     --bg-card and --bg-sidebar at the small sizes it is used for. */
+  --text-secondary: #7c8aa0;
   --text-muted: #475569;
 
   /* Interactive */
@@ -20,6 +22,9 @@
   --color-error: #ef4444;
   /* White on --color-error is 3.76:1; this shade clears WCAG AA. */
   --color-error-strong: #b91c1c;
+  /* --color-error as text is only 4.36:1 on --bg-card-hover; this clears AA
+     on every surface it is used against. */
+  --color-error-text: #f87171;
 
   /* Borders & surfaces */
   --border-subtle: rgba(255, 255, 255, 0.06);
@@ -33,6 +38,12 @@
   margin: 0;
   padding: 0;
   box-sizing: inherit;
+}
+
+/* A class setting `display` outranks the UA's [hidden] rule, so any element
+   toggled via the hidden attribute would otherwise stay visible. */
+[hidden] {
+  display: none !important;
 }
 
 html {
@@ -175,8 +186,8 @@ a:visited {
 }
 
 .sidebar__action--danger:hover {
-  color: var(--color-error);
-  border-color: var(--color-error);
+  color: var(--color-error-text);
+  border-color: var(--color-error-text);
 }
 
 .sidebar__action--armed,
@@ -386,8 +397,8 @@ a:visited {
 }
 
 .workout__delete:hover {
-  color: var(--color-error);
-  border-color: var(--color-error);
+  color: var(--color-error-text);
+  border-color: var(--color-error-text);
 }
 
 .workout__delete:focus-visible {
@@ -428,7 +439,10 @@ a:visited {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 3rem;
+  gap: 1.5rem;
+  /* Clears the absolutely-positioned delete button so the type badge, which
+     sits at the same corner, is never overlapped by it. */
+  padding-right: 2.8rem;
   margin-bottom: 1.2rem;
 }
 
