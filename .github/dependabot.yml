@@ -17,3 +17,7 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - 'dependencies'
+    groups:
+      codeql-action:
+        patterns:
+          - 'github/codeql-action/*'
